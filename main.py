@@ -1,0 +1,266 @@
+import pyaudio
+import numpy as np
+import pyqtgraph as pg
+from PyQt5 import QtWidgets
+import wave
+from scipy.signal import butter, lfilter, find_peaks
+
+from signal_analysis_helpers import (
+    max_amp_over_period,
+    average_delay_over_period,
+    read_wav_chunk,
+    read_calibration_sample,
+)
+
+from plotting_helpers import (
+    create_plots,
+    perform_signal_analysis,
+    find_audio_device,
+    apply_selective_gain,
+    calculate_delays,
+    calculate_heart_rate,
+)
+from stream_recorder import record_stream
+
+# Initial Parameters
+FORMAT = pyaudio.paInt16
+DISTANCE = 3.5  # distance between the microphones
+CHANNELS = 2  # both the left and right channel
+RATE = 44100  # sampling rate
+REFRESH_PERIOD = 10  # number of milliseconds between plot updates
+CHUNK = int(RATE * (REFRESH_PERIOD / 1000))  # chunk size for processing
+WINDOW_SECONDS = 10  # Window length in seconds
+CALIBRATION_DURATION = 10  # Calibration duration in seconds
+
+# Constants
+live = 0
+desired_device_name = "Scarlett 2i2 USB"
+low_pass_filter_cut_off = 10
+saved_file = "C:/Users/wenze/source/repos/veinguard/audio_processing_ayden/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+
+# Thresholds for percent difference in time delay from standard calibration
+stenosis_risk_levels = {"low": 25, "medium": 75, "high": 150}
+
+# Initialize PyAudio
+p = pyaudio.PyAudio()
+
+if live:
+    # Desired device name
+    input_device_index = find_audio_device(p, desired_device_name)
+
+    # Open audio stream
+    stream = p.open(
+        format=FORMAT,
+        channels=CHANNELS,
+        rate=RATE,
+        input=True,
+        input_device_index=input_device_index,
+        frames_per_buffer=CHUNK,
+    )
+else:
+    # Open the saved file
+    wav_file = wave.open(saved_file, "rb")
+
+######## Calibration ########
+source = stream if live else wav_file
+
+calibration_data = read_calibration_sample(source, RATE, CALIBRATION_DURATION, live)
+
+max_amp_channel_1, max_amp_channel_2 = max_amp_over_period(calibration_data)
+
+standard_peak_delay, standard_trough_delay = average_delay_over_period(
+    calibration_data, RATE
+)
+#############################
+
+######## Plotting ########
+
+# Create a PyQtGraph window
+(
+    app,
+    win,
+    plot1,
+    curve1,
+    peaks_scatter1,
+    troughs_scatter1,
+    plot2,
+    curve2,
+    peaks_scatter2,
+    troughs_scatter2,
+    flow_rate_label,
+    heart_rate_label,
+    avg_peak_delay_label,
+    avg_trough_delay_label,
+    percent_difference_from_standard_label,
+    stenosis_risk_label,
+) = create_plots(WINDOW_SECONDS, RATE)
+
+# Buffer to store audio data for the window
+global_data_buffer_1 = np.zeros(int(WINDOW_SECONDS * RATE), dtype=np.int16)
+global_data_buffer_2 = np.zeros(int(WINDOW_SECONDS * RATE), dtype=np.int16)
+
+global_peaks_c1 = np.array([])
+global_peaks_c2 = np.array([])
+
+global_troughs_c1 = np.array([])
+global_troughs_c2 = np.array([])
+
+
+def update_data():
+    global global_data_buffer_1, global_data_buffer_2
+    global global_peaks_c1, global_peaks_c2
+    global global_troughs_c1, global_troughs_c2
+    try:
+        # Perform signal analysis for each new chunk
+        if live:
+            new_data = stream.read(CHUNK)
+        else:
+            new_data = read_wav_chunk(wav_file, CHUNK)
+            if new_data is None:  # End of WAV file
+                print("End of WAV file")
+                return
+
+        data_buffer_1, data_buffer_2 = perform_signal_analysis(
+            WINDOW_SECONDS,
+            RATE,
+            CHUNK,
+            global_data_buffer_1,
+            global_data_buffer_2,
+            new_data,
+            max_amp_channel_1,
+            max_amp_channel_2,
+            low_pass_filter_cut_off,
+            live,
+        )
+
+        global_data_buffer_1 = data_buffer_1
+        global_data_buffer_2 = data_buffer_2
+
+        # Update the plot curves
+        curve1.setData(global_data_buffer_1)
+        curve2.setData(global_data_buffer_2)
+
+        # Find peaks
+        peaks_c1, _ = find_peaks(
+            global_data_buffer_1,
+            height=np.max(global_data_buffer_1) / 4,
+            distance=RATE / 2,
+        )
+        peaks_c2, _ = find_peaks(
+            global_data_buffer_2,
+            height=np.max(global_data_buffer_2) / 4,
+            distance=RATE / 2,
+        )
+
+        # Find troughs (negative peaks of the inverted signal)
+        troughs_c1, _ = find_peaks(
+            -global_data_buffer_1,
+            height=-np.min(global_data_buffer_1) / 4,
+            distance=RATE / 2,
+        )
+        troughs_c2, _ = find_peaks(
+            -global_data_buffer_2,
+            height=-np.min(global_data_buffer_2) / 4,
+            distance=RATE / 2,
+        )
+
+        global_peaks_c1 = np.array([[i, global_data_buffer_1[i]] for i in peaks_c1])
+        global_peaks_c2 = np.array([[i, global_data_buffer_2[i]] for i in peaks_c2])
+        global_troughs_c1 = np.array([[i, global_data_buffer_1[i]] for i in troughs_c1])
+        global_troughs_c2 = np.array([[i, global_data_buffer_2[i]] for i in troughs_c2])
+
+        # Update the scatter plots with peak and trough coordinates
+        peaks_scatter1.setData(pos=global_peaks_c1)
+        troughs_scatter1.setData(pos=global_troughs_c1)
+        peaks_scatter2.setData(pos=global_peaks_c2)
+        troughs_scatter2.setData(pos=global_troughs_c2)
+
+    except Exception as e:
+        # print(f"Error: {e}")
+        return
+
+
+def update_flow_rate():
+    try:
+        if (
+            len(global_peaks_c1) == 0
+            or len(global_troughs_c1) == 0
+            or len(global_peaks_c2) == 0
+            or len(global_troughs_c2) == 0
+        ):
+            # print("One or more arrays are empty. Skipping delay calculation.")
+            return
+
+        # Calculate delays
+        delays = calculate_delays(
+            global_peaks_c1[:, 0],
+            global_troughs_c1[:, 0],
+            global_peaks_c2[:, 0],
+            global_troughs_c2[:, 0],
+            RATE,
+        )
+        average_peak_delay_ms = round(np.mean(delays["peak_delays"]) * 1000, 2)
+        average_trough_delay_ms = round(np.mean(delays["trough_delays"]) * 1000, 2)
+
+        average_time_delay_ms = average_peak_delay_ms + average_trough_delay_ms / 2
+        flow_rate = round((DISTANCE * 1000) / (average_time_delay_ms))
+
+        # Compare average time delay with standard calibration peak delay to determine stenosis level
+        percent_difference_from_standard = round(
+            abs((standard_peak_delay - average_time_delay_ms) / standard_peak_delay)
+            * 100
+        )
+
+        percent_difference_from_standard_label.setText(
+            f"Percent difference from calibrated standard ({standard_peak_delay} ms): {percent_difference_from_standard}%"
+        )
+
+        # Set stenosis risk label based on stenosis_risk_levels dictionary
+        if percent_difference_from_standard < stenosis_risk_levels["low"]:
+            stenosis_risk_label.setText(text="No Stenosis Risk", color=(0, 255, 0))
+        elif percent_difference_from_standard < stenosis_risk_levels["medium"]:
+            stenosis_risk_label.setText(text="Low Stenosis Risk", color=(255, 255, 0))
+        elif percent_difference_from_standard < stenosis_risk_levels["high"]:
+            stenosis_risk_label.setText(
+                text="Medium Stenosis Risk", color=(255, 165, 0)
+            )
+        else:
+            stenosis_risk_label.setText(text="High Stenosis Risk", color=(255, 0, 0))
+
+        # Calculate heart rate
+        heart_rate_c1 = calculate_heart_rate(global_peaks_c1, RATE)
+        heart_rate_c2 = calculate_heart_rate(global_peaks_c2, RATE)
+        heart_rate = (heart_rate_c1 + heart_rate_c2) / 2
+
+        # Update text items with delay values and heart rate
+        avg_peak_delay_label.setText(f"Average Peak Delay: {average_peak_delay_ms} ms")
+        avg_trough_delay_label.setText(
+            f"Average Trough Delay: {average_trough_delay_ms} ms"
+        )
+        flow_rate_label.setText(f"Blood Velocity: {flow_rate} cm/s")
+        heart_rate_label.setText(f"Heart Rate: {heart_rate} BPM")
+
+    except Exception as e:
+        # print(f"Error: {e}")
+        return
+
+
+# Set up a timer for updating the plot
+timer = pg.QtCore.QTimer()
+timer.timeout.connect(update_data)
+timer.start(REFRESH_PERIOD)  # Update the plot
+
+# Set up a second timer for updating peaks
+timer_peaks = pg.QtCore.QTimer()
+timer_peaks.timeout.connect(update_flow_rate)
+timer_peaks.start(REFRESH_PERIOD * 5)  # Update peaks
+
+# Start the PyQtGraph application
+if __name__ == "__main__":
+    QtWidgets.QApplication.instance().exec_()
+
+    # Close the stream and PyAudio
+    if live:
+        stream.stop_stream()
+        stream.close()
+    p.terminate()
