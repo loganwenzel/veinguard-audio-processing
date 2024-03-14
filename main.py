@@ -36,10 +36,11 @@ CALIBRATION_DURATION = 10  # Calibration duration in seconds
 live = 0
 desired_device_name = "Scarlett 2i2 USB"
 low_pass_filter_cut_off = 10
-saved_file = "C:/Users/wenze/source/repos/veinguard/audio_processing_ayden/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+# saved_file = "C:/Users/wenze/source/repos/veinguard/audio_processing_ayden/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+saved_file = "/Users/ayden/Desktop/rec/A1_NOCOMP_35_WITH_CALIBRATION.wav"
 
-# Thresholds for percent difference in time delay from standard calibration
-stenosis_risk_levels = {"low": 25, "medium": 75, "high": 150}
+# Thresholds for percent difference in time delay from calibration calibration. These represent percent differnces between A2 and A1, ie. the difference in cross sectional area of the pipe
+stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
 
 # Initialize PyAudio
 p = pyaudio.PyAudio()
@@ -68,7 +69,7 @@ calibration_data = read_calibration_sample(source, RATE, CALIBRATION_DURATION, l
 
 max_amp_channel_1, max_amp_channel_2 = max_amp_over_period(calibration_data)
 
-standard_peak_delay, standard_trough_delay = average_delay_over_period(
+calibration_peak_delay, calibration_trough_delay = average_delay_over_period(
     calibration_data, RATE
 )
 #############################
@@ -87,11 +88,11 @@ standard_peak_delay, standard_trough_delay = average_delay_over_period(
     curve2,
     peaks_scatter2,
     troughs_scatter2,
-    flow_rate_label,
+    blood_velocity_label,
     heart_rate_label,
     avg_peak_delay_label,
     avg_trough_delay_label,
-    percent_difference_from_standard_label,
+    percent_difference_from_calibration_label,
     stenosis_risk_label,
 ) = create_plots(WINDOW_SECONDS, RATE)
 
@@ -180,7 +181,7 @@ def update_data():
         return
 
 
-def update_flow_rate():
+def update_blood_velocity():
     try:
         if (
             len(global_peaks_c1) == 0
@@ -202,25 +203,26 @@ def update_flow_rate():
         average_peak_delay_ms = round(np.mean(delays["peak_delays"]) * 1000, 2)
         average_trough_delay_ms = round(np.mean(delays["trough_delays"]) * 1000, 2)
 
-        average_time_delay_ms = average_peak_delay_ms + average_trough_delay_ms / 2
-        flow_rate = round((DISTANCE * 1000) / (average_time_delay_ms))
+        calibration_average_time_delay_ms = calibration_peak_delay + calibration_trough_delay / 2
+        current_average_time_delay_ms = average_peak_delay_ms + average_trough_delay_ms / 2
+        
+        calibration_blood_velocity = round((DISTANCE * 1000) / (calibration_average_time_delay_ms))
+        current_blood_velocity = round((DISTANCE * 1000) / (current_average_time_delay_ms))        
 
-        # Compare average time delay with standard calibration peak delay to determine stenosis level
-        percent_difference_from_standard = round(
-            abs((standard_peak_delay - average_time_delay_ms) / standard_peak_delay)
-            * 100
+        percent_difference_from_calibration = round(abs(
+            (1 - (calibration_blood_velocity / current_blood_velocity)) * 100)
         )
 
-        percent_difference_from_standard_label.setText(
-            f"Percent difference from calibrated standard ({standard_peak_delay} ms): {percent_difference_from_standard}%"
+        percent_difference_from_calibration_label.setText(
+            f"Percent difference in the cross-sectional-area of the pipe ({calibration_blood_velocity} cm/s): {percent_difference_from_calibration}%"
         )
 
         # Set stenosis risk label based on stenosis_risk_levels dictionary
-        if percent_difference_from_standard < stenosis_risk_levels["low"]:
+        if percent_difference_from_calibration < stenosis_risk_levels["low"]:
             stenosis_risk_label.setText(text="No Stenosis Risk", color=(0, 255, 0))
-        elif percent_difference_from_standard < stenosis_risk_levels["medium"]:
+        elif percent_difference_from_calibration < stenosis_risk_levels["medium"]:
             stenosis_risk_label.setText(text="Low Stenosis Risk", color=(255, 255, 0))
-        elif percent_difference_from_standard < stenosis_risk_levels["high"]:
+        elif percent_difference_from_calibration < stenosis_risk_levels["high"]:
             stenosis_risk_label.setText(
                 text="Medium Stenosis Risk", color=(255, 165, 0)
             )
@@ -237,7 +239,7 @@ def update_flow_rate():
         avg_trough_delay_label.setText(
             f"Average Trough Delay: {average_trough_delay_ms} ms"
         )
-        flow_rate_label.setText(f"Blood Velocity: {flow_rate} cm/s")
+        blood_velocity_label.setText(f"Blood Velocity: {current_blood_velocity} cm/s")
         heart_rate_label.setText(f"Heart Rate: {heart_rate} BPM")
 
     except Exception as e:
@@ -252,7 +254,7 @@ timer.start(REFRESH_PERIOD)  # Update the plot
 
 # Set up a second timer for updating peaks
 timer_peaks = pg.QtCore.QTimer()
-timer_peaks.timeout.connect(update_flow_rate)
+timer_peaks.timeout.connect(update_blood_velocity)
 timer_peaks.start(REFRESH_PERIOD * 5)  # Update peaks
 
 # Start the PyQtGraph application

@@ -68,7 +68,7 @@ def max_amp_over_period(calibration_data):
 
 
 def average_delay_over_period(calibration_data, rate):
-    print("Starting Standard Peak Delay Calibration...")
+    print("Starting Calibration Peak Delay Calibration...")
 
     if len(calibration_data) < 2:
         print("Error: Data is too short.")

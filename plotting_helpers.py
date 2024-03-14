@@ -82,9 +82,9 @@ def create_plots(window_seconds, rate):
     layout = win.addLayout()
 
     ### SECTION 1
-    flow_rate_label = pg.LabelItem(text="Blood Velocity: ", color=(255, 255, 0))
+    blood_velocity_label = pg.LabelItem(text="Blood Velocity: ", color=(255, 255, 0))
     heart_rate_label = pg.LabelItem(text="Heart Rate: ", color=(255, 255, 0))
-    layout.addItem(flow_rate_label, row=0, col=0)
+    layout.addItem(blood_velocity_label, row=0, col=0)
     layout.addItem(heart_rate_label, row=1, col=0)
 
     ### SECTION 2
@@ -96,10 +96,10 @@ def create_plots(window_seconds, rate):
     layout.addItem(avg_trough_delay_label, row=1, col=1)  # Placed in a different row
 
     ### SECTION 3
-    percent_difference_from_standard_label = pg.LabelItem(
-        text="Percent difference from standard: ", color=(255, 255, 255)
+    percent_difference_from_calibration_label = pg.LabelItem(
+        text="Percent difference from calibration: ", color=(255, 255, 255)
     )
-    layout.addItem(percent_difference_from_standard_label, row=0, col=2)
+    layout.addItem(percent_difference_from_calibration_label, row=0, col=2)
 
     stenosis_risk_label = pg.LabelItem(text="Stenosis Risk", color=(255, 255, 255))
     layout.addItem(stenosis_risk_label, row=1, col=2)
@@ -115,11 +115,11 @@ def create_plots(window_seconds, rate):
         curve2,
         peaks_scatter2,
         troughs_scatter2,
-        flow_rate_label,
+        blood_velocity_label,
         heart_rate_label,
         avg_peak_delay_label,
         avg_trough_delay_label,
-        percent_difference_from_standard_label,
+        percent_difference_from_calibration_label,
         stenosis_risk_label,
     )
 
