@@ -184,20 +184,20 @@ def update_data():
 def update_calculations():
     try:
         if (
-            len(global_peaks_c1) == 0
-            or len(global_troughs_c1) == 0
-            or len(global_peaks_c2) == 0
-            or len(global_troughs_c2) == 0
+            len(global_peaks_c1) < 3
+            or len(global_troughs_c1) < 3
+            or len(global_peaks_c2) < 3
+            or len(global_troughs_c2) < 3
         ):
-            # print("One or more arrays are empty. Skipping delay calculation.")
+            # print("One or more arrays do not have enough peaks/troughs. Skipping delay calculation.")
             return
 
         # Calculate delays
         delays = calculate_delays(
-            global_peaks_c1[:, 0],
-            global_troughs_c1[:, 0],
-            global_peaks_c2[:, 0],
-            global_troughs_c2[:, 0],
+            global_peaks_c1[1:-1, 0],
+            global_troughs_c1[1:-1, 0],
+            global_peaks_c2[1:-1, 0],
+            global_troughs_c2[1:-1, 0],
             RATE,
         )
         average_peak_delay_ms = round(np.mean(delays["peak_delays"]) * 1000, 2)
@@ -238,8 +238,8 @@ def update_calculations():
             stenosis_risk_label.setText(text="High Stenosis Risk", color=(255, 0, 0))
 
         # Calculate heart rate
-        heart_rate_c1 = calculate_heart_rate(global_peaks_c1, RATE)
-        heart_rate_c2 = calculate_heart_rate(global_peaks_c2, RATE)
+        heart_rate_c1 = calculate_heart_rate(global_peaks_c1[1:-1], RATE)
+        heart_rate_c2 = calculate_heart_rate(global_peaks_c2[1:-1], RATE)
         heart_rate = (heart_rate_c1 + heart_rate_c2) / 2
 
         # Update text items with delay values and heart rate

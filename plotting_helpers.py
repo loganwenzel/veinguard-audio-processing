@@ -97,39 +97,28 @@ def create_plots(window_seconds, rate):
     layout = win.addLayout()
 
     # Define the font properties
-    font = QtGui.QFont()
-    font.setPixelSize(30)
-    font.setBold(True)
+    font_size = "15pt"
     label_color = "black"
 
     ### SECTION 1
-    blood_velocity_label = pg.LabelItem(
-        text="Blood Velocity: ", color=label_color, font=font
-    )
-    blood_velocity_label.setFont(font)
-    heart_rate_label = pg.LabelItem(text="Heart Rate: ", color=label_color)
-    heart_rate_label.setFont(font)
+    blood_velocity_label = pg.LabelItem(color=label_color, size=font_size)
+    heart_rate_label = pg.LabelItem(color=label_color, size=font_size)
     layout.addItem(blood_velocity_label, row=0, col=0)
     layout.addItem(heart_rate_label, row=1, col=0)
 
     ### SECTION 2
-    avg_peak_delay_label = pg.LabelItem(text="Average Peak Delay: ", color=label_color)
-    avg_peak_delay_label.setFont(font)
-    avg_trough_delay_label = pg.LabelItem(
-        text="Average Trough Delay: ", color=label_color
-    )
-    avg_trough_delay_label.setFont(font)
+    avg_peak_delay_label = pg.LabelItem(color=label_color, size=font_size)
+    avg_trough_delay_label = pg.LabelItem(color=label_color, size=font_size)
     layout.addItem(avg_peak_delay_label, row=0, col=1)
     layout.addItem(avg_trough_delay_label, row=1, col=1)  # Placed in a different row
 
     ### SECTION 3
     percent_difference_from_calibration_label = pg.LabelItem(
-        text="Percent difference from calibration: ", color=label_color
+        color=label_color, size=font_size
     )
-    percent_difference_from_calibration_label.setFont(font)
     layout.addItem(percent_difference_from_calibration_label, row=0, col=2)
 
-    stenosis_risk_label = pg.LabelItem(text="Stenosis Risk", color=label_color)
+    stenosis_risk_label = pg.LabelItem(color=label_color, size=font_size)
 
     layout.addItem(stenosis_risk_label, row=1, col=2)
 
