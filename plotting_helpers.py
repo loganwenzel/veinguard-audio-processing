@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
 from scipy.signal import butter, lfilter
@@ -39,17 +39,15 @@ def find_audio_device(p, desired_device_name):
 
 
 def create_plots(window_seconds, rate):
-    x_ticks = [[(rate * i, str(i)) for i in range(window_seconds + 1)]]
-
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Veinguard")
     win.setBackground("w")
     win.resize(1000, 600)
 
     # Define plot pen styles
-    plot_pen = pg.mkPen(color=(0, 0, 0), width=2)  # Black color, thicker line
-    peak_pen = pg.mkPen(color=(0, 255, 0), width=2)  # Green color, thicker line
-    trough_pen = pg.mkPen(color=(255, 0, 0), width=2)  # Red color, thicker line
+    plot_pen = pg.mkPen(color=(0, 0, 0), width=2)
+    peak_pen = pg.mkPen(color=(0, 255, 0), width=2)
+    trough_pen = pg.mkPen(color=(255, 0, 0), width=2)
 
     # First plot
     plot1 = win.addPlot(title="Channel 1 - Upper Arm")
@@ -57,11 +55,9 @@ def create_plots(window_seconds, rate):
     plot1.setYRange(-1, 1, padding=0.1)
     plot1.setLabel("left", "Amplitude")
     plot1.setLabel("bottom", "Time (seconds)")
-    plot1.getAxis("bottom").setTickSpacing(
-        rate, rate
-    )  # Dynamic tick spacing based on rate
+    plot1.getAxis("bottom").setTickSpacing(rate, rate)
 
-    # Scatter plots for peaks and troughs in the first plot
+    # Scatter plots for peaks and troughs
     peaks_scatter1 = pg.ScatterPlotItem(
         pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0)
     )
@@ -81,7 +77,6 @@ def create_plots(window_seconds, rate):
     plot2.setLabel("bottom", "Time (seconds)")
     plot2.getAxis("bottom").setTickSpacing(rate, rate)
 
-    # Scatter plots for peaks and troughs in the second plot
     peaks_scatter2 = pg.ScatterPlotItem(
         pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0)
     )
@@ -96,31 +91,51 @@ def create_plots(window_seconds, rate):
     # Third row layout
     layout = win.addLayout()
 
-    # Define the font properties
-    font_size = "15pt"
-    label_color = "black"
+    # Define the CSS styling
+    label_style = """
+        QLabel {
+            color: #000;
+            border-radius: 10px;
+            padding: 5px;
+            text-align: center;
+        }
+    """
 
-    ### SECTION 1
-    blood_velocity_label = pg.LabelItem(color=label_color, size=font_size)
-    heart_rate_label = pg.LabelItem(color=label_color, size=font_size)
-    layout.addItem(blood_velocity_label, row=0, col=0)
-    layout.addItem(heart_rate_label, row=1, col=0)
+    # Create and style QLabel widgets for each label
+    def create_styled_label(text):
+        label_widget = QtWidgets.QLabel(text)
+        label_widget.setStyleSheet(label_style)
+        label_widget.setFont(QtGui.QFont("Arial", 10))
+        proxy_widget = pg.QtWidgets.QGraphicsProxyWidget()
+        proxy_widget.setWidget(label_widget)
+        return label_widget, proxy_widget
 
-    ### SECTION 2
-    avg_peak_delay_label = pg.LabelItem(color=label_color, size=font_size)
-    avg_trough_delay_label = pg.LabelItem(color=label_color, size=font_size)
-    layout.addItem(avg_peak_delay_label, row=0, col=1)
-    layout.addItem(avg_trough_delay_label, row=1, col=1)  # Placed in a different row
+    # Column 1
+    blood_velocity_label, blood_velocity_proxy = create_styled_label("Calibrating")
+    blood_velocity_label.setAlignment(QtCore.Qt.AlignCenter)
+    heart_rate_label, heart_rate_proxy = create_styled_label("Calibrating")
+    heart_rate_label.setAlignment(QtCore.Qt.AlignCenter)
+    layout.addItem(blood_velocity_proxy, row=0, col=0)
+    layout.addItem(heart_rate_proxy, row=1, col=0)
 
-    ### SECTION 3
-    percent_difference_from_calibration_label = pg.LabelItem(
-        color=label_color, size=font_size
+    # Column 2
+    avg_peak_delay_label, avg_peak_delay_proxy = create_styled_label("Calibrating")
+    avg_peak_delay_label.setAlignment(QtCore.Qt.AlignCenter)
+    avg_trough_delay_label, avg_trough_delay_proxy = create_styled_label("Calibrating")
+    avg_trough_delay_label.setAlignment(QtCore.Qt.AlignCenter)
+    layout.addItem(avg_peak_delay_proxy, row=0, col=1)
+    layout.addItem(avg_trough_delay_proxy, row=1, col=1)
+
+    # Column 3
+    percent_difference_from_calibration_label, percent_difference_proxy = (
+        create_styled_label("Calibrating")
     )
-    layout.addItem(percent_difference_from_calibration_label, row=0, col=2)
+    percent_difference_from_calibration_label.setAlignment(QtCore.Qt.AlignCenter)
+    layout.addItem(percent_difference_proxy, row=0, col=2)
 
-    stenosis_risk_label = pg.LabelItem(color=label_color, size=font_size)
-
-    layout.addItem(stenosis_risk_label, row=1, col=2)
+    stenosis_risk_label, stenosis_risk_proxy = create_styled_label("Calibrating")
+    stenosis_risk_label.setAlignment(QtCore.Qt.AlignCenter)
+    layout.addItem(stenosis_risk_proxy, row=1, col=2)
 
     return (
         app,

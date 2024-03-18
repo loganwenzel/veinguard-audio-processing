@@ -1,7 +1,7 @@
 import pyaudio
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore, QtGui
 import wave
 from scipy.signal import butter, lfilter, find_peaks
 
@@ -93,7 +93,7 @@ calibration_peak_delay, calibration_trough_delay = average_delay_over_period(
     avg_peak_delay_label,
     avg_trough_delay_label,
     percent_difference_from_calibration_label,
-    stenosis_risk_label,
+    stenosis_risk_widget,
 ) = create_plots(WINDOW_SECONDS, RATE)
 
 # Buffer to store audio data for the window
@@ -227,15 +227,76 @@ def update_calculations():
 
         # Set stenosis risk label based on stenosis_risk_levels dictionary
         if percent_difference_from_calibration < stenosis_risk_levels["low"]:
-            stenosis_risk_label.setText(text="No Stenosis Risk", color=(0, 255, 0))
+            # Green
+            stenosis_risk_widget.setText(
+                '<span> Stenosis Risk: None </span> <div> <img src="assets/NoRisk.svg" width="80" height="80"> </div>'
+            )
+            stenosis_risk_widget.setStyleSheet(
+                """
+            QLabel {
+                color: #000;
+                border: 2px solid green;
+                background-color: #CCFFCC;
+            }
+            """
+            )
         elif percent_difference_from_calibration < stenosis_risk_levels["medium"]:
-            stenosis_risk_label.setText(text="Low Stenosis Risk", color=(0, 255, 0))
+            # Yellow
+            stenosis_risk_widget.setText(
+                'Stenosis Risk: Low <img src="assets/LowRisk.svg" width="80" height="80">'
+            )
+            stenosis_risk_widget.setStyleSheet(
+                """
+            QLabel {
+                color: #000;
+                border: 2px solid yellow;
+                background-color: #FFFFCC;
+                text-align: center;
+            }
+            QLabel img {
+                vertical-align: middle;
+                margin-left: 20px;
+            }
+            """
+            )
         elif percent_difference_from_calibration < stenosis_risk_levels["high"]:
-            stenosis_risk_label.setText(
-                text="Medium Stenosis Risk", color=(255, 165, 0)
+            # Orange
+            stenosis_risk_widget.setText(
+                'Stenosis Risk: Medium <img src="assets/MediumRisk.svg" width="80" height="80">'
+            )
+            stenosis_risk_widget.setStyleSheet(
+                """
+            QLabel {
+                color: #000;
+                border: 2px solid orange;
+                background-color: #FFD699;
+                text-align: center;
+            }
+            QLabel img {
+                vertical-align: middle;
+                margin-left: 20px;
+            }
+            """
             )
         else:
-            stenosis_risk_label.setText(text="High Stenosis Risk", color=(255, 0, 0))
+            # Red
+            stenosis_risk_widget.setText(
+                'Stenosis Risk: High<img src="assets/HighRisk.svg" width="80" height="80">'
+            )
+            stenosis_risk_widget.setStyleSheet(
+                """
+            QLabel {
+                color: #000;
+                border: 2px solid red;
+                background-color: #FFCCCC;
+                text-align: center;
+                }
+            QLabel img {
+                vertical-align: middle;
+                margin-left: 20px;
+            }
+            """
+            )
 
         # Calculate heart rate
         heart_rate_c1 = calculate_heart_rate(global_peaks_c1[1:-1], RATE)
