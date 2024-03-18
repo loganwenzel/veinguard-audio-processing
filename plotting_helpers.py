@@ -58,116 +58,6 @@ def create_plots(window_seconds, rate):
     plot_pen = pg.mkPen(color=(0, 0, 0), width=2)
     peak_pen = pg.mkPen(color=(0, 255, 0), width=2)
     trough_pen = pg.mkPen(color=(255, 0, 0), width=2)
-    plot_pen = pg.mkPen(color=(0, 0, 0), width=2)
-    peak_pen = pg.mkPen(color=(0, 255, 0), width=2)
-    trough_pen = pg.mkPen(color=(255, 0, 0), width=2)
-
-    # First plot
-    plot1 = win.addPlot(title="Channel 1 - Upper Arm")
-    curve1 = plot1.plot(pen=plot_pen)
-    plot1.setYRange(-1, 1, padding=0.1)
-    plot1.setLabel("left", "Amplitude")
-    plot1.setLabel("bottom", "Time (seconds)")
-    plot1.getAxis("bottom").setTicks(x_ticks)
-
-    # Scatter plots for peaks and troughs
-    peaks_scatter1 = pg.ScatterPlotItem(
-        pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0)
-    )
-    troughs_scatter1 = pg.ScatterPlotItem(
-        pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0)
-    )
-    plot1.addItem(peaks_scatter1)
-    plot1.addItem(troughs_scatter1)
-
-    win.nextRow()
-
-    # Second plot
-    plot2 = win.addPlot(title="Channel 2 - Wrist")
-    curve2 = plot2.plot(pen=plot_pen)
-    plot2.setYRange(-1, 1, padding=0.1)
-    plot2.setLabel("left", "Amplitude")
-    plot2.setLabel("bottom", "Time (seconds)")
-    plot2.getAxis("bottom").setTicks(x_ticks)
-
-    # Scatter plots for peaks and troughs in the second plot
-    peaks_scatter2 = pg.ScatterPlotItem(
-        pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0)
-    )
-    troughs_scatter2 = pg.ScatterPlotItem(
-        pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0)
-    )
-    plot2.addItem(peaks_scatter2)
-    plot2.addItem(troughs_scatter2)
-
-    win.nextRow()
-
-    # Third row layout
-    layout = win.addLayout()
-
-    # Define the CSS styling
-    label_style = """
-        QLabel {
-            color: #000;
-            border-radius: 10px;
-            padding: 5px;
-            text-align: center;
-        }
-    """
-
-    # Create and style QLabel widgets for each label
-    def create_styled_label(text):
-        label_widget = QtWidgets.QLabel(text)
-        label_widget.setStyleSheet(label_style)
-        label_widget.setFont(QtGui.QFont("Arial", 10))
-        proxy_widget = pg.QtWidgets.QGraphicsProxyWidget()
-        proxy_widget.setWidget(label_widget)
-        return label_widget, proxy_widget
-
-    # Column 1
-    blood_velocity_label, blood_velocity_proxy = create_styled_label("Calibrating")
-    blood_velocity_label.setAlignment(QtCore.Qt.AlignCenter)
-    heart_rate_label, heart_rate_proxy = create_styled_label("Calibrating")
-    heart_rate_label.setAlignment(QtCore.Qt.AlignCenter)
-    layout.addItem(blood_velocity_proxy, row=0, col=0)
-    layout.addItem(heart_rate_proxy, row=1, col=0)
-
-    ### SECTION 2
-    avg_peak_delay_label = pg.LabelItem(color=label_color, size=font_size)
-    avg_trough_delay_label = pg.LabelItem(color=label_color, size=font_size)
-    layout.addItem(avg_peak_delay_label, row=0, col=1)
-    layout.addItem(avg_trough_delay_label, row=1, col=1)  # Placed in a different row
-
-    # Column 3
-    percent_difference_from_calibration_label, percent_difference_proxy = (
-        create_styled_label("Calibrating")
-    )
-    percent_difference_from_calibration_label.setAlignment(QtCore.Qt.AlignCenter)
-    layout.addItem(percent_difference_proxy, row=0, col=2)
-
-    stenosis_risk_label, stenosis_risk_proxy = create_styled_label("Calibrating")
-    stenosis_risk_label.setAlignment(QtCore.Qt.AlignCenter)
-    layout.addItem(stenosis_risk_proxy, row=1, col=2)
-
-
-def create_plots(window_seconds, rate):
-    # Generate x_ticks with even spacing
-    tick_interval = max(
-        1, window_seconds // 10
-    )  # Ensure at least 1 second between ticks
-    x_ticks = [
-        [(i * rate, str(i)) for i in range(0, window_seconds + 1, tick_interval)]
-    ]
-
-    app = QtWidgets.QApplication([])
-    win = pg.GraphicsLayoutWidget(show=True, title="Veinguard")
-    win.setBackground("w")
-    win.resize(1000, 600)
-
-    # Define plot pen styles
-    plot_pen = pg.mkPen(color=(0, 0, 0), width=2)
-    peak_pen = pg.mkPen(color=(0, 255, 0), width=2)
-    trough_pen = pg.mkPen(color=(255, 0, 0), width=2)
 
     # First plot
     plot1 = win.addPlot(title="Channel 1 - Upper Arm")
@@ -219,6 +109,8 @@ def create_plots(window_seconds, rate):
             border-radius: 10px;
             padding: 5px;
             text-align: center;
+            height: 50px;
+            background-color: #eeeeee;
         }
     """
 
@@ -226,7 +118,11 @@ def create_plots(window_seconds, rate):
     def create_styled_label(text):
         label_widget = QtWidgets.QLabel(text)
         label_widget.setStyleSheet(label_style)
-        label_widget.setFont(QtGui.QFont("Arial", 10))
+        label_widget.setFont(QtGui.QFont("Arial", 20, QtGui.QFont.Bold))
+        label_widget.setAlignment(QtCore.Qt.AlignCenter)
+        label_widget.setMinimumHeight(150)
+        label_widget.setMaximumHeight(150)
+        label_widget.setMinimumWidth(550)
         proxy_widget = pg.QtWidgets.QGraphicsProxyWidget()
         proxy_widget.setWidget(label_widget)
         return label_widget, proxy_widget

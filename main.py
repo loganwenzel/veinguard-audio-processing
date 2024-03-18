@@ -256,7 +256,7 @@ if DISTANCE is not None:
             )
 
             percent_difference_from_calibration_label.setText(
-                f"Percent difference in the cross-sectional-area of the pipe ({calibration_blood_velocity} cm/s): {percent_difference_from_calibration}%"
+                f'<p style="font-size: 16px;"> Percent difference in the cross-sectional-area of the pipe ({calibration_blood_velocity} cm/s) </p> <h2> {percent_difference_from_calibration}% </h2>'
             )
 
             # Set stenosis risk label based on stenosis_risk_levels dictionary
@@ -277,7 +277,7 @@ if DISTANCE is not None:
             elif percent_difference_from_calibration < stenosis_risk_levels["medium"]:
                 # Yellow
                 stenosis_risk_widget.setText(
-                    'Stenosis Risk: Low <img src="assets/LowRisk.svg" width="80" height="80">'
+                    '<span> Stenosis Risk: Low </span> <div> <img src="assets/LowRisk.svg" width="80" height="80"> </div>'
                 )
                 stenosis_risk_widget.setStyleSheet(
                     """
@@ -285,18 +285,13 @@ if DISTANCE is not None:
                     color: #000;
                     border: 2px solid yellow;
                     background-color: #FFFFCC;
-                    text-align: center;
-                }
-                QLabel img {
-                    vertical-align: middle;
-                    margin-left: 20px;
                 }
                 """
                 )
             elif percent_difference_from_calibration < stenosis_risk_levels["high"]:
                 # Orange
                 stenosis_risk_widget.setText(
-                    'Stenosis Risk: Medium <img src="assets/MediumRisk.svg" width="80" height="80">'
+                    '<span> Stenosis Risk: Medium </span> <div> <img src="assets/MediumRisk.svg" width="80" height="80"> </div>'
                 )
                 stenosis_risk_widget.setStyleSheet(
                     """
@@ -304,18 +299,13 @@ if DISTANCE is not None:
                     color: #000;
                     border: 2px solid orange;
                     background-color: #FFD699;
-                    text-align: center;
-                }
-                QLabel img {
-                    vertical-align: middle;
-                    margin-left: 20px;
                 }
                 """
                 )
             else:
                 # Red
                 stenosis_risk_widget.setText(
-                    'Stenosis Risk: High<img src="assets/HighRisk.svg" width="80" height="80">'
+                    '<span> Stenosis Risk: High </span> <div> <img src="assets/HighRisk.svg" width="80" height="80"> </div>'
                 )
                 stenosis_risk_widget.setStyleSheet(
                     """
@@ -323,12 +313,7 @@ if DISTANCE is not None:
                     color: #000;
                     border: 2px solid red;
                     background-color: #FFCCCC;
-                    text-align: center;
                     }
-                QLabel img {
-                    vertical-align: middle;
-                    margin-left: 20px;
-                }
                 """
                 )
 
@@ -339,15 +324,17 @@ if DISTANCE is not None:
 
             # Update text items with delay values and heart rate
             avg_peak_delay_label.setText(
-                f"Average Peak Delay: {average_peak_delay_ms} ms"
+                f'<p style="font-size: 16px;"> Average Peak Delay </p> <h2> {average_peak_delay_ms} ms </h2>'
             )
             avg_trough_delay_label.setText(
-                f"Average Trough Delay: {average_trough_delay_ms} ms"
+                f'<p style="font-size: 16px;"> Average Trough Delay </p> <h2> {average_trough_delay_ms} ms </h2>'
             )
             blood_velocity_label.setText(
-                f"Blood Velocity: {current_blood_velocity} cm/s"
+                f'<p style="font-size: 16px;"> Blood Velocity </p> <h2> {current_blood_velocity} cm/s </h2>'
             )
-            heart_rate_label.setText(f"Heart Rate: {heart_rate} BPM")
+            heart_rate_label.setText(
+                f'<p style="font-size: 16px;"> Heart Rate </p> <h2> {heart_rate} BPM </h2>'
+            )
 
         except Exception as e:
             print(f"Error: {e}")
