@@ -36,8 +36,8 @@ CALIBRATION_DURATION = 10  # Calibration duration in seconds
 live = 0
 desired_device_name = "Scarlett 2i2 USB"
 low_pass_filter_cut_off = 10
-saved_file = "C:/Users/wenze/source/repos/veinguard/audio_processing_ayden/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
-# saved_file = "/Users/ayden/Desktop/rec/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+# saved_file = "C:/Users/wenze/source/repos/veinguard/audio_processing_ayden/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+saved_file = "/Users/ayden/Desktop/rec/A1_NOCOMP_35_WITH_CALIBRATION.wav"
 
 # Thresholds for percent difference in time delay from calibration calibration. These represent percent differnces between A2 and A1, ie. the difference in cross sectional area of the pipe
 stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
@@ -75,6 +75,7 @@ calibration_peak_delay, calibration_trough_delay = average_delay_over_period(
 #############################
 
 ######## Plotting ########
+total_frames_processed = 0
 
 # Create a PyQtGraph window
 (
@@ -94,6 +95,7 @@ calibration_peak_delay, calibration_trough_delay = average_delay_over_period(
     avg_trough_delay_label,
     percent_difference_from_calibration_label,
     stenosis_risk_label,
+    update_x_axis,
 ) = create_plots(WINDOW_SECONDS, RATE)
 
 # Buffer to store audio data for the window
@@ -106,8 +108,8 @@ global_peaks_c2 = np.array([])
 global_troughs_c1 = np.array([])
 global_troughs_c2 = np.array([])
 
-
 def update_data():
+    global total_frames_processed
     global global_data_buffer_1, global_data_buffer_2
     global global_peaks_c1, global_peaks_c2
     global global_troughs_c1, global_troughs_c2
@@ -133,6 +135,14 @@ def update_data():
             low_pass_filter_cut_off,
             live,
         )
+
+        prev_time = total_frames_processed // RATE
+        total_frames_processed += CHUNK
+        cur_time = total_frames_processed // RATE
+
+        if cur_time > prev_time and cur_time > WINDOW_SECONDS:
+            update_x_axis(cur_time)  # Update the x-axis ticks
+            print(cur_time)
 
         global_data_buffer_1 = data_buffer_1
         global_data_buffer_2 = data_buffer_2

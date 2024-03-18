@@ -39,7 +39,9 @@ def find_audio_device(p, desired_device_name):
 
 
 def create_plots(window_seconds, rate):
-    x_ticks = [[(rate * i, str(i)) for i in range(window_seconds + 1)]]
+    # Generate x_ticks with even spacing
+    tick_interval = max(1, window_seconds // 10)  # Ensure at least 1 second between ticks
+    x_ticks = [[(i * rate, str(i)) for i in range(0, window_seconds + 1, tick_interval)]]
 
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Veinguard")
@@ -47,9 +49,9 @@ def create_plots(window_seconds, rate):
     win.resize(1000, 600)
 
     # Define plot pen styles
-    plot_pen = pg.mkPen(color=(0, 0, 0), width=2)  # Black color, thicker line
-    peak_pen = pg.mkPen(color=(0, 255, 0), width=2)  # Green color, thicker line
-    trough_pen = pg.mkPen(color=(255, 0, 0), width=2)  # Red color, thicker line
+    plot_pen = pg.mkPen(color=(0, 0, 0), width=2)
+    peak_pen = pg.mkPen(color=(0, 255, 0), width=2)
+    trough_pen = pg.mkPen(color=(255, 0, 0), width=2)
 
     # First plot
     plot1 = win.addPlot(title="Channel 1 - Upper Arm")
@@ -57,17 +59,11 @@ def create_plots(window_seconds, rate):
     plot1.setYRange(-1, 1, padding=0.1)
     plot1.setLabel("left", "Amplitude")
     plot1.setLabel("bottom", "Time (seconds)")
-    plot1.getAxis("bottom").setTickSpacing(
-        rate, rate
-    )  # Dynamic tick spacing based on rate
+    plot1.getAxis("bottom").setTicks(x_ticks)
 
     # Scatter plots for peaks and troughs in the first plot
-    peaks_scatter1 = pg.ScatterPlotItem(
-        pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0)
-    )
-    troughs_scatter1 = pg.ScatterPlotItem(
-        pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0)
-    )
+    peaks_scatter1 = pg.ScatterPlotItem(pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0))
+    troughs_scatter1 = pg.ScatterPlotItem(pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0))
     plot1.addItem(peaks_scatter1)
     plot1.addItem(troughs_scatter1)
 
@@ -79,15 +75,11 @@ def create_plots(window_seconds, rate):
     plot2.setYRange(-1, 1, padding=0.1)
     plot2.setLabel("left", "Amplitude")
     plot2.setLabel("bottom", "Time (seconds)")
-    plot2.getAxis("bottom").setTickSpacing(rate, rate)
+    plot2.getAxis("bottom").setTicks(x_ticks)
 
     # Scatter plots for peaks and troughs in the second plot
-    peaks_scatter2 = pg.ScatterPlotItem(
-        pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0)
-    )
-    troughs_scatter2 = pg.ScatterPlotItem(
-        pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0)
-    )
+    peaks_scatter2 = pg.ScatterPlotItem(pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0))
+    troughs_scatter2 = pg.ScatterPlotItem(pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0))
     plot2.addItem(peaks_scatter2)
     plot2.addItem(troughs_scatter2)
 
@@ -110,7 +102,7 @@ def create_plots(window_seconds, rate):
     avg_peak_delay_label = pg.LabelItem(color=label_color, size=font_size)
     avg_trough_delay_label = pg.LabelItem(color=label_color, size=font_size)
     layout.addItem(avg_peak_delay_label, row=0, col=1)
-    layout.addItem(avg_trough_delay_label, row=1, col=1)  # Placed in a different row
+    layout.addItem(avg_trough_delay_label, row=1, col=1)
 
     ### SECTION 3
     percent_difference_from_calibration_label = pg.LabelItem(
@@ -121,6 +113,100 @@ def create_plots(window_seconds, rate):
     stenosis_risk_label = pg.LabelItem(color=label_color, size=font_size)
 
     layout.addItem(stenosis_risk_label, row=1, col=2)
+
+def create_plots(window_seconds, rate):
+    # Generate x_ticks with even spacing
+    tick_interval = max(1, window_seconds // 10)  # Ensure at least 1 second between ticks
+    x_ticks = [[(i * rate, str(i)) for i in range(0, window_seconds + 1, tick_interval)]]
+
+    print("x_ticks:", x_ticks)
+
+    app = QtWidgets.QApplication([])
+    win = pg.GraphicsLayoutWidget(show=True, title="Veinguard")
+    win.setBackground("w")
+    win.resize(1000, 600)
+
+    # Define plot pen styles
+    plot_pen = pg.mkPen(color=(0, 0, 0), width=2)
+    peak_pen = pg.mkPen(color=(0, 255, 0), width=2)
+    trough_pen = pg.mkPen(color=(255, 0, 0), width=2)
+
+    # First plot
+    plot1 = win.addPlot(title="Channel 1 - Upper Arm")
+    curve1 = plot1.plot(pen=plot_pen)
+    plot1.setYRange(-1, 1, padding=0.1)
+    plot1.setLabel("left", "Amplitude")
+    plot1.setLabel("bottom", "Time (seconds)")
+    plot1.getAxis("bottom").setTicks(x_ticks)
+
+    # Scatter plots for peaks and troughs in the first plot
+    peaks_scatter1 = pg.ScatterPlotItem(pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0))
+    troughs_scatter1 = pg.ScatterPlotItem(pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0))
+    plot1.addItem(peaks_scatter1)
+    plot1.addItem(troughs_scatter1)
+
+    win.nextRow()
+
+    # Second plot
+    plot2 = win.addPlot(title="Channel 2 - Wrist")
+    curve2 = plot2.plot(pen=plot_pen)
+    plot2.setYRange(-1, 1, padding=0.1)
+    plot2.setLabel("left", "Amplitude")
+    plot2.setLabel("bottom", "Time (seconds)")
+    plot2.getAxis("bottom").setTicks(x_ticks)
+
+    # Scatter plots for peaks and troughs in the second plot
+    peaks_scatter2 = pg.ScatterPlotItem(pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0))
+    troughs_scatter2 = pg.ScatterPlotItem(pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0))
+    plot2.addItem(peaks_scatter2)
+    plot2.addItem(troughs_scatter2)
+
+    win.nextRow()
+
+    # Third row layout
+    layout = win.addLayout()
+
+    # Define the font properties
+    font_size = "15pt"
+    label_color = "black"
+
+    ### SECTION 1
+    blood_velocity_label = pg.LabelItem(color=label_color, size=font_size)
+    heart_rate_label = pg.LabelItem(color=label_color, size=font_size)
+    layout.addItem(blood_velocity_label, row=0, col=0)
+    layout.addItem(heart_rate_label, row=1, col=0)
+
+    ### SECTION 2
+    avg_peak_delay_label = pg.LabelItem(color=label_color, size=font_size)
+    avg_trough_delay_label = pg.LabelItem(color=label_color, size=font_size)
+    layout.addItem(avg_peak_delay_label, row=0, col=1)
+    layout.addItem(avg_trough_delay_label, row=1, col=1)
+
+    ### SECTION 3
+    percent_difference_from_calibration_label = pg.LabelItem(
+        color=label_color, size=font_size
+    )
+    layout.addItem(percent_difference_from_calibration_label, row=0, col=2)
+
+    stenosis_risk_label = pg.LabelItem(color=label_color, size=font_size)
+
+    layout.addItem(stenosis_risk_label, row=1, col=2)
+    # positions = [0, 44100, 88200, 132300, 176400, 220500, 264600, 308700, 352800, 396900, 441000]
+    
+    def update_x_axis(current_time):
+        tick_start = max(0, current_time - window_seconds + 1)
+        tick_labels = [str(i) for i in range(tick_start, current_time + 1)]
+
+        # Generate positions for the ticks based on the window size
+        positions = [i * rate for i in range(window_seconds + 1)]
+        
+        # Associate each position with the corresponding label, ensuring labels match their positions
+        x_ticks = [(positions[i - tick_start], label) for i, label in enumerate(tick_labels, start=tick_start)]
+
+        plot1.getAxis('bottom').setTicks([x_ticks])
+        plot2.getAxis('bottom').setTicks([x_ticks])
+
+
 
     return (
         app,
@@ -139,6 +225,7 @@ def create_plots(window_seconds, rate):
         avg_trough_delay_label,
         percent_difference_from_calibration_label,
         stenosis_risk_label,
+        update_x_axis,
     )
 
 
