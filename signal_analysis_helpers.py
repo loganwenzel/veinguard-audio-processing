@@ -82,9 +82,6 @@ def average_delay_over_period(calibration_data, rate):
     peaks_ch1, _ = find_peaks(data_ch1, height=np.max(data_ch1) / 4, distance=rate / 2)
     peaks_ch2, _ = find_peaks(data_ch2, height=np.max(data_ch2) / 4, distance=rate / 2)
 
-    print(len(peaks_ch1))
-    print(len(peaks_ch2))
-
     # Find troughs for both channels (by finding peaks in the inverted signals)
     troughs_ch1, _ = find_peaks(
         -data_ch1, height=-np.min(data_ch1) / 4, distance=rate / 2

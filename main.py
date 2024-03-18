@@ -27,7 +27,7 @@ FORMAT = pyaudio.paInt16
 DISTANCE = 3.5  # distance between the microphones
 CHANNELS = 2  # both the left and right channel
 RATE = 44100  # sampling rate
-REFRESH_PERIOD = 10  # number of milliseconds between plot updates
+REFRESH_PERIOD = 100  # number of milliseconds between plot updates
 CHUNK = int(RATE * (REFRESH_PERIOD / 1000))  # chunk size for processing
 WINDOW_SECONDS = 10  # Window length in seconds
 CALIBRATION_DURATION = 10  # Calibration duration in seconds
@@ -36,8 +36,8 @@ CALIBRATION_DURATION = 10  # Calibration duration in seconds
 live = 0
 desired_device_name = "Scarlett 2i2 USB"
 low_pass_filter_cut_off = 10
-# saved_file = "C:/Users/wenze/source/repos/veinguard/audio_processing_ayden/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
-saved_file = "/Users/ayden/Desktop/rec/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+saved_file = "C:/Users/wenze/source/repos/veinguard/audio_processing_ayden/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+# saved_file = "/Users/ayden/Desktop/rec/A1_NOCOMP_35_WITH_CALIBRATION.wav"
 
 # Thresholds for percent difference in time delay from calibration calibration. These represent percent differnces between A2 and A1, ie. the difference in cross sectional area of the pipe
 stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
@@ -114,7 +114,7 @@ def update_data():
     try:
         # Perform signal analysis for each new chunk
         if live:
-            new_data = stream.read(CHUNK)
+            new_data = stream.read(CHUNK, exception_on_overflow=False)
         else:
             new_data = read_wav_chunk(wav_file, CHUNK)
             if new_data is None:  # End of WAV file
@@ -181,7 +181,7 @@ def update_data():
         return
 
 
-def update_blood_velocity():
+def update_calculations():
     try:
         if (
             len(global_peaks_c1) == 0
@@ -203,14 +203,22 @@ def update_blood_velocity():
         average_peak_delay_ms = round(np.mean(delays["peak_delays"]) * 1000, 2)
         average_trough_delay_ms = round(np.mean(delays["trough_delays"]) * 1000, 2)
 
-        calibration_average_time_delay_ms = calibration_peak_delay + calibration_trough_delay / 2
-        current_average_time_delay_ms = average_peak_delay_ms + average_trough_delay_ms / 2
-        
-        calibration_blood_velocity = round((DISTANCE * 1000) / (calibration_average_time_delay_ms))
-        current_blood_velocity = round((DISTANCE * 1000) / (current_average_time_delay_ms))        
+        calibration_average_time_delay_ms = (
+            calibration_peak_delay + calibration_trough_delay / 2
+        )
+        current_average_time_delay_ms = (
+            average_peak_delay_ms + average_trough_delay_ms / 2
+        )
 
-        percent_difference_from_calibration = round(abs(
-            (1 - (calibration_blood_velocity / current_blood_velocity)) * 100)
+        calibration_blood_velocity = round(
+            (DISTANCE * 1000) / (calibration_average_time_delay_ms)
+        )
+        current_blood_velocity = round(
+            (DISTANCE * 1000) / (current_average_time_delay_ms)
+        )
+
+        percent_difference_from_calibration = round(
+            abs((1 - (calibration_blood_velocity / current_blood_velocity)) * 100)
         )
 
         percent_difference_from_calibration_label.setText(
@@ -221,7 +229,7 @@ def update_blood_velocity():
         if percent_difference_from_calibration < stenosis_risk_levels["low"]:
             stenosis_risk_label.setText(text="No Stenosis Risk", color=(0, 255, 0))
         elif percent_difference_from_calibration < stenosis_risk_levels["medium"]:
-            stenosis_risk_label.setText(text="Low Stenosis Risk", color=(255, 255, 0))
+            stenosis_risk_label.setText(text="Low Stenosis Risk", color=(0, 255, 0))
         elif percent_difference_from_calibration < stenosis_risk_levels["high"]:
             stenosis_risk_label.setText(
                 text="Medium Stenosis Risk", color=(255, 165, 0)
@@ -252,13 +260,15 @@ timer = pg.QtCore.QTimer()
 timer.timeout.connect(update_data)
 timer.start(REFRESH_PERIOD)  # Update the plot
 
-# Set up a second timer for updating peaks
-timer_peaks = pg.QtCore.QTimer()
-timer_peaks.timeout.connect(update_blood_velocity)
-timer_peaks.start(REFRESH_PERIOD * 5)  # Update peaks
+# Set up a second timer for performing all calculations
+calculations_timer = pg.QtCore.QTimer()
+calculations_timer.timeout.connect(update_calculations)
+calculations_timer.start(REFRESH_PERIOD)  # Update peaks
 
 # Start the PyQtGraph application
 if __name__ == "__main__":
+    # win.showFullScreen()
+    win.showMaximized()  # Use showFullScreen() for symposium
     QtWidgets.QApplication.instance().exec_()
 
     # Close the stream and PyAudio

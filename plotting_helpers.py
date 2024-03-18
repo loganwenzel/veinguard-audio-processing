@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 import pyqtgraph as pg
 import numpy as np
 from scipy.signal import butter, lfilter
@@ -43,19 +43,31 @@ def create_plots(window_seconds, rate):
 
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Veinguard")
+    win.setBackground("w")
+    win.resize(1000, 600)
+
+    # Define plot pen styles
+    plot_pen = pg.mkPen(color=(0, 0, 0), width=2)  # Black color, thicker line
+    peak_pen = pg.mkPen(color=(0, 255, 0), width=2)  # Green color, thicker line
+    trough_pen = pg.mkPen(color=(255, 0, 0), width=2)  # Red color, thicker line
 
     # First plot
     plot1 = win.addPlot(title="Channel 1 - Upper Arm")
-    curve1 = plot1.plot(pen="y")
-    plot1.setXRange(0, window_seconds * rate, padding=0)
+    curve1 = plot1.plot(pen=plot_pen)
     plot1.setYRange(-1, 1, padding=0.1)
     plot1.setLabel("left", "Amplitude")
     plot1.setLabel("bottom", "Time (seconds)")
-    plot1.getAxis("bottom").setTicks(x_ticks)
+    plot1.getAxis("bottom").setTickSpacing(
+        rate, rate
+    )  # Dynamic tick spacing based on rate
 
     # Scatter plots for peaks and troughs in the first plot
-    peaks_scatter1 = pg.ScatterPlotItem(pen="g", symbol="o", brush="g")
-    troughs_scatter1 = pg.ScatterPlotItem(pen="r", symbol="o", brush="r")
+    peaks_scatter1 = pg.ScatterPlotItem(
+        pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0)
+    )
+    troughs_scatter1 = pg.ScatterPlotItem(
+        pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0)
+    )
     plot1.addItem(peaks_scatter1)
     plot1.addItem(troughs_scatter1)
 
@@ -63,16 +75,19 @@ def create_plots(window_seconds, rate):
 
     # Second plot
     plot2 = win.addPlot(title="Channel 2 - Wrist")
-    curve2 = plot2.plot(pen="y")
-    plot2.setXRange(0, window_seconds * rate, padding=0)
+    curve2 = plot2.plot(pen=plot_pen)
     plot2.setYRange(-1, 1, padding=0.1)
     plot2.setLabel("left", "Amplitude")
     plot2.setLabel("bottom", "Time (seconds)")
-    plot2.getAxis("bottom").setTicks(x_ticks)
+    plot2.getAxis("bottom").setTickSpacing(rate, rate)
 
     # Scatter plots for peaks and troughs in the second plot
-    peaks_scatter2 = pg.ScatterPlotItem(pen="g", symbol="o", brush="g")
-    troughs_scatter2 = pg.ScatterPlotItem(pen="r", symbol="o", brush="r")
+    peaks_scatter2 = pg.ScatterPlotItem(
+        pen=peak_pen, symbol="o", size=5, brush=pg.mkBrush(0, 255, 0)
+    )
+    troughs_scatter2 = pg.ScatterPlotItem(
+        pen=trough_pen, symbol="o", size=5, brush=pg.mkBrush(255, 0, 0)
+    )
     plot2.addItem(peaks_scatter2)
     plot2.addItem(troughs_scatter2)
 
@@ -81,27 +96,41 @@ def create_plots(window_seconds, rate):
     # Third row layout
     layout = win.addLayout()
 
+    # Define the font properties
+    font = QtGui.QFont()
+    font.setPixelSize(30)
+    font.setBold(True)
+    label_color = "black"
+
     ### SECTION 1
-    blood_velocity_label = pg.LabelItem(text="Blood Velocity: ", color=(255, 255, 0))
-    heart_rate_label = pg.LabelItem(text="Heart Rate: ", color=(255, 255, 0))
+    blood_velocity_label = pg.LabelItem(
+        text="Blood Velocity: ", color=label_color, font=font
+    )
+    blood_velocity_label.setFont(font)
+    heart_rate_label = pg.LabelItem(text="Heart Rate: ", color=label_color)
+    heart_rate_label.setFont(font)
     layout.addItem(blood_velocity_label, row=0, col=0)
     layout.addItem(heart_rate_label, row=1, col=0)
 
     ### SECTION 2
-    avg_peak_delay_label = pg.LabelItem(text="Average Peak Delay: ", color=(0, 255, 0))
+    avg_peak_delay_label = pg.LabelItem(text="Average Peak Delay: ", color=label_color)
+    avg_peak_delay_label.setFont(font)
     avg_trough_delay_label = pg.LabelItem(
-        text="Average Trough Delay: ", color=(255, 0, 0)
+        text="Average Trough Delay: ", color=label_color
     )
+    avg_trough_delay_label.setFont(font)
     layout.addItem(avg_peak_delay_label, row=0, col=1)
     layout.addItem(avg_trough_delay_label, row=1, col=1)  # Placed in a different row
 
     ### SECTION 3
     percent_difference_from_calibration_label = pg.LabelItem(
-        text="Percent difference from calibration: ", color=(255, 255, 255)
+        text="Percent difference from calibration: ", color=label_color
     )
+    percent_difference_from_calibration_label.setFont(font)
     layout.addItem(percent_difference_from_calibration_label, row=0, col=2)
 
-    stenosis_risk_label = pg.LabelItem(text="Stenosis Risk", color=(255, 255, 255))
+    stenosis_risk_label = pg.LabelItem(text="Stenosis Risk", color=label_color)
+
     layout.addItem(stenosis_risk_label, row=1, col=2)
 
     return (
