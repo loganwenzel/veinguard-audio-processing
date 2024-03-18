@@ -1,4 +1,6 @@
 from PyQt5 import QtWidgets, QtGui
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QComboBox, QPushButton
+
 import pyqtgraph as pg
 import numpy as np
 from scipy.signal import butter, lfilter
@@ -119,8 +121,6 @@ def create_plots(window_seconds, rate):
     tick_interval = max(1, window_seconds // 10)  # Ensure at least 1 second between ticks
     x_ticks = [[(i * rate, str(i)) for i in range(0, window_seconds + 1, tick_interval)]]
 
-    print("x_ticks:", x_ticks)
-
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Veinguard")
     win.setBackground("w")
@@ -205,8 +205,6 @@ def create_plots(window_seconds, rate):
 
         plot1.getAxis('bottom').setTicks([x_ticks])
         plot2.getAxis('bottom').setTicks([x_ticks])
-
-
 
     return (
         app,
@@ -318,3 +316,40 @@ def calculate_heart_rate(global_peaks, rate):
     else:
         heart_rate = 0
     return heart_rate
+
+def select_distance():
+    app = QApplication([])
+
+    # Create a window
+    window = QWidget()
+    window.setWindowTitle("Select Distance")
+    layout = QVBoxLayout()
+
+    # Create a dropdown for distance selection
+    distance_dropdown = QComboBox()
+    distance_dropdown.addItems(["3.0", "3.5", "4.0", "4.5", "5.0"])
+    layout.addWidget(distance_dropdown)
+
+    # Create a button to start recording
+    start_button = QPushButton("Begin Recording")
+    layout.addWidget(start_button)
+
+    # Function to handle button click
+    def on_start_button_clicked():
+        distance = float(distance_dropdown.currentText())
+        window.close()
+        app.exit()  # Close the application
+        return distance
+
+    # Connect the button click event to the function
+    start_button.clicked.connect(lambda: on_start_button_clicked())
+
+    # Set the layout and show the window
+    window.setLayout(layout)
+    window.show()
+
+    # Start the application event loop
+    app.exec_()
+
+    # Return the selected distance after the window is closed
+    return float(distance_dropdown.currentText())
