@@ -122,7 +122,7 @@ def create_plots(window_seconds, rate):
         label_widget.setAlignment(QtCore.Qt.AlignCenter)
         label_widget.setMinimumHeight(150)
         label_widget.setMaximumHeight(150)
-        label_widget.setMinimumWidth(550)
+        label_widget.setMinimumWidth(400)
         proxy_widget = pg.QtWidgets.QGraphicsProxyWidget()
         proxy_widget.setWidget(label_widget)
         return label_widget, proxy_widget
@@ -205,30 +205,34 @@ def perform_signal_analysis(
     lpf_cut_off,
     is_live,
 ):
-    if is_live:
-        # Read a chunk of data from the live stream
-        new_data = np.frombuffer(
-            source.read(CHUNK, exception_on_overflow=False), dtype=np.int16
-        )
-    else:
-        # Use the provided NumPy array (source is already a NumPy array)
-        new_data = source
+    new_data = source
 
     channel1 = new_data[::2]
     channel2 = new_data[1::2]
-    # print(f"C1: {(channel1)}, C2: {(channel2)}\n")
+    
+    # Calculate alpha for the low-pass filter
+    tau = 1.0 / (2 * np.pi * lpf_cut_off)
+    alpha = 1.0 / RATE / tau
 
     ###### Operations #####
+    # # Apply low-pass filter
+    # channel1 = butter_lowpass_filter(channel1, cutoff=lpf_cut_off, fs=RATE)
+    # channel2 = butter_lowpass_filter(channel2, cutoff=lpf_cut_off, fs=RATE)
+
+    # Apply low-pass filter
+    channel1 = simple_lowpass_filter(channel1, alpha)
+    channel2 = simple_lowpass_filter(channel2, alpha)
+
+    # Amplify
+    filtered_channel1 = simple_lowpass_filter(channel1, alpha, data_buffer_1[-1])
+    filtered_channel2 = simple_lowpass_filter(channel2, alpha, data_buffer_2[-1])
+
     ### Normalize
     channel1 = normalize(channel1, max_amp_channel_1)
     channel2 = normalize(channel2, max_amp_channel_2)
 
     # channel1 = apply_selective_gain(channel1, max_amp_channel_1*0.6, 0.3)
     # channel2 = apply_selective_gain(channel2, max_amp_channel_2*0.6, 0.3)
-
-    # Apply low-pass filter
-    # channel1 = butter_lowpass_filter(channel1, cutoff=lpf_cut_off, fs=RATE)
-    # channel2 = butter_lowpass_filter(channel2, cutoff=lpf_cut_off, fs=RATE)
     #######################
 
     # Remove first elements
@@ -241,6 +245,20 @@ def perform_signal_analysis(
 
     return data_buffer_1, data_buffer_2
 
+def simple_lowpass_filter(data, alpha, last_value=0):
+    # data is your input signal array.
+    # alpha is the smoothing factor, which you can calculate using alpha = dt / tau. dt is the inverse of the sampling rate (1 / RATE), and tau is related to the cutoff frequency of the filter (tau = 1 / (2 * np.pi * cutoff_frequency)).
+    # filtered_data is the output of the filtered signal.
+
+    # Initialize the filtered data array
+    filtered_data = np.zeros_like(data)
+    filtered_data[0] = last_value
+
+    # Apply the filter to the data
+    for i in range(1, len(data)):
+        filtered_data[i] = filtered_data[i-1] + alpha * (data[i] - filtered_data[i-1])
+    
+    return filtered_data
 
 def calculate_delays(
     peaks_channel1, troughs_channel1, peaks_channel2, troughs_channel2, sample_rate

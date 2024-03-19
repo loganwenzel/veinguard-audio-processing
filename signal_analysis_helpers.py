@@ -109,7 +109,7 @@ def average_delay_over_period(calibration_data, rate):
     )
 
     print(
-        f"Calibration complete. Average peak delay: {avg_peak_delay_ms} ms, Average trough delay: {avg_trough_delay_ms} ms"
+        f"Calibration complete. Average peak delay: {avg_peak_delay_ms} ms, Average trough delay: {avg_trough_delay_ms} ms\n"
     )
 
     return avg_peak_delay_ms, avg_trough_delay_ms
@@ -125,6 +125,7 @@ def read_calibration_sample(source, rate, duration, is_live):
             data = source.read(
                 total_samples - samples_read, exception_on_overflow=False
             )
+            data = np.frombuffer(data, dtype=np.int16)
         else:
             raw_data = source.readframes(total_samples - samples_read)
             if len(raw_data) == 0:  # End of file
@@ -133,7 +134,7 @@ def read_calibration_sample(source, rate, duration, is_live):
 
         data_buffer.append(data)
         samples_read += len(data)
-
+    print(data_buffer)
     return np.concatenate(data_buffer)
 
 
@@ -143,3 +144,21 @@ def read_wav_chunk(wav_file, chunk_size):
     if len(raw_data) == 0:  # End of file
         return None
     return np.frombuffer(raw_data, dtype=np.int16)
+
+def butter_lowpass_filter(data, cutoff, fs, order=5):
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    filtered_data = lfilter(b, a, data)
+    return filtered_data
+
+def dual_channel_low_pass_filter(data, cutoff, fs):
+    print(data)
+    channel1 = data[::2]
+    channel2 = data[1::2]
+
+    filtered_channel1 = butter_lowpass_filter(channel1, cutoff, fs)
+    filtered_channel2 = butter_lowpass_filter(channel2, cutoff, fs)
+
+    filtered_data = np.vstack((filtered_channel1, filtered_channel2)).T
+    return filtered_data
