@@ -146,7 +146,7 @@ def read_wav_chunk(wav_file, chunk_size):
     return np.frombuffer(raw_data, dtype=np.int16)
 
 
-def butter_lowpass_filter(data, cutoff, fs, order=5):
+def butter_lowpass_filter(data, cutoff, fs, order=1):
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
     b, a = butter(order, normal_cutoff, btype="low", analog=False)

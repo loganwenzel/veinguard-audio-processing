@@ -219,10 +219,6 @@ def perform_signal_analysis(
     channel1 = butter_lowpass_filter(channel1, cutoff=lpf_cut_off, fs=RATE)
     channel2 = butter_lowpass_filter(channel2, cutoff=lpf_cut_off, fs=RATE)
 
-    # # Apply low-pass filter
-    # channel1 = simple_lowpass_filter(channel1, alpha)
-    # channel2 = simple_lowpass_filter(channel2, alpha)
-
     ### Normalize
     channel1 = normalize(channel1, max_amp_channel_1)
     channel2 = normalize(channel2, max_amp_channel_2)
