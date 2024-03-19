@@ -34,15 +34,16 @@ RATE = 44100  # sampling rate
 REFRESH_PERIOD = 100  # number of milliseconds between plot updates
 CHUNK = int(RATE * (REFRESH_PERIOD / 1000))  # chunk size for processing
 WINDOW_SECONDS = 10  # Window length in seconds
-CALIBRATION_DURATION = 2  # Calibration duration in seconds
+CALIBRATION_DURATION = 5  # Calibration duration in seconds
 
 # Constants
 live = 0
 desired_device_name = "Scarlett 2i2 USB"
 low_pass_filter_cut_off = 10
-# saved_file = "C:/Users/wenze/source/repos/veinguard/audio_processing_ayden/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
-saved_file = "/Users/ayden/Desktop/unfiltered_signal_from_cad.wav"
-saved_file = '/Users/ayden/Desktop/rec/wav/ayden/A2_2.5COMP_3.5.wav'
+# saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/unfiltered_signal_from_cad.wav"
+# saved_file = "/Users/ayden/Desktop/unfiltered_signal_from_cad.wav"
+# saved_file = "/Users/ayden/Desktop/rec/wav/ayden/A2_2.5COMP_3.5.wav"
 
 # Thresholds for percent difference in time delay from calibration calibration. These represent percent differnces between A2 and A1, ie. the difference in cross sectional area of the pipe
 stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
@@ -50,10 +51,10 @@ stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
 # Call the function and store the returned distance
 params = get_init_values(
     default_distance=3.5,
-    default_refresh_period=100,
-    default_window_seconds=10,
-    default_calibration_duration=10,
-    default_live=True,
+    default_refresh_period=REFRESH_PERIOD,
+    default_window_seconds=WINDOW_SECONDS,
+    default_calibration_duration=CALIBRATION_DURATION,
+    default_live=False,
     default_saved_file=saved_file,
 )
 
@@ -84,13 +85,15 @@ if DISTANCE is not None:
     else:
         # Open the saved file
         wav_file = wave.open(saved_file, "rb")
-        
+
     source = stream if live else wav_file
 
     ######## Calibration ########
     calibration_data = read_calibration_sample(source, RATE, CALIBRATION_DURATION, live)
 
-    filtered_calibration_data = dual_channel_low_pass_filter(calibration_data,low_pass_filter_cut_off, RATE)
+    calibration_data = dual_channel_low_pass_filter(
+        calibration_data, low_pass_filter_cut_off, RATE
+    )
 
     max_amp_channel_1, max_amp_channel_2 = max_amp_over_period(calibration_data)
 

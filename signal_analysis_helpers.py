@@ -145,12 +145,14 @@ def read_wav_chunk(wav_file, chunk_size):
         return None
     return np.frombuffer(raw_data, dtype=np.int16)
 
+
 def butter_lowpass_filter(data, cutoff, fs, order=5):
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    b, a = butter(order, normal_cutoff, btype="low", analog=False)
     filtered_data = lfilter(b, a, data)
     return filtered_data
+
 
 def dual_channel_low_pass_filter(data, cutoff, fs):
     print(data)
@@ -160,5 +162,10 @@ def dual_channel_low_pass_filter(data, cutoff, fs):
     filtered_channel1 = butter_lowpass_filter(channel1, cutoff, fs)
     filtered_channel2 = butter_lowpass_filter(channel2, cutoff, fs)
 
-    filtered_data = np.vstack((filtered_channel1, filtered_channel2)).T
+    # Interleave filtered_channel1 and filtered_channel2, ensuring the result is of the same type as the input data (was causing issues before)
+    filtered_data = np.empty(
+        filtered_channel1.size + filtered_channel2.size, dtype=filtered_channel1.dtype
+    )
+    filtered_data[0::2] = filtered_channel1
+    filtered_data[1::2] = filtered_channel2
     return filtered_data
