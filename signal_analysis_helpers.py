@@ -1,23 +1,9 @@
 import numpy as np
 from scipy.signal import butter, lfilter, find_peaks
 
-
-# Butterworth Low Pass Filter
-def butter_lowpass(cutoff, fs, order=5):
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff / nyq
-    b, a = butter(order, normal_cutoff, btype="low", analog=False)
-    return b, a
-
-
-def butter_lowpass_filter(data, cutoff, fs, order=5):
-    b, a = butter_lowpass(cutoff, fs, order=order)
-    y = lfilter(b, a, data)
-    return y
-
-
 # Normalize and amplify signal
 def normalize(data, max_amp):
+    print(max(data))
     normalized_data = data / max_amp
     return normalized_data
 
@@ -50,33 +36,28 @@ def apply_selective_gain(signal, threshold, gain):
 
 def max_amp_over_period(calibration_data):
     print("Starting Amplitude Calibration...")
-    max_amplitude_channel1 = 0
-    max_amplitude_channel2 = 0
 
-    # Split the stereo audio data into two channels
-    channel1 = calibration_data[::2]
-    channel2 = calibration_data[1::2]
+    # Find the 50 largest absolute values in the calibration data
+    # Use np.partition for efficiency
+    kth_largest = -50  # Negative indices start from the end, so -50 gets the 50 largest values
+    largest_values = np.partition(np.abs(calibration_data), kth_largest)[kth_largest:]
+    # Sort the found values for better readability
+    largest_values_sorted = np.sort(largest_values)
+
+    print("50 largest values in the calibration data:")
+    print(largest_values_sorted)
 
     # Update the maximum amplitude for each channel
-    max_amplitude_channel1 = np.max(np.abs(channel1))
-    max_amplitude_channel2 = np.max(np.abs(channel2))
+    max_amplitude = np.max(np.abs(calibration_data))
 
     print(
-        f"Calibration complete. Max amplitude channel 1: {max_amplitude_channel1}, channel 2: {max_amplitude_channel2}"
+        f"Calibration complete. Max amplitude: {max_amplitude}"
     )
-    return max_amplitude_channel1, max_amplitude_channel2
+    return max_amplitude
 
 
-def average_delay_over_period(calibration_data, rate):
+def average_delay_over_period(data_ch1, data_ch2, rate):
     print("Starting Calibration Peak Delay Calibration...")
-
-    if len(calibration_data) < 2:
-        print("Error: Data is too short.")
-        return 0, 0
-
-    # Split the stereo data
-    data_ch1 = calibration_data[0::2]
-    data_ch2 = calibration_data[1::2]
 
     # Find peaks for both channels
     peaks_ch1, _ = find_peaks(data_ch1, height=np.max(data_ch1) / 4, distance=rate / 2)
@@ -116,7 +97,7 @@ def average_delay_over_period(calibration_data, rate):
 
 
 def read_calibration_sample(source, rate, duration, is_live):
-    total_samples = int(duration * rate) * 2  # Multiply by 2 for stereo data
+    total_samples = int(duration * rate)  # No longer multiply by 2 for stereo
     samples_read = 0
     data_buffer = []
 
@@ -132,11 +113,16 @@ def read_calibration_sample(source, rate, duration, is_live):
                 break
             data = np.frombuffer(raw_data, dtype=np.int16)
 
+        # If the original data had two channels, they were interleaved.
+        # For a single channel, this is no longer necessary.
         data_buffer.append(data)
         samples_read += len(data)
-    print(data_buffer)
-    return np.concatenate(data_buffer)
 
+    calibration_data = np.concatenate(data_buffer)
+    calibration_data_channel_1 = calibration_data[::2]
+    calibration_data_channel_2 = calibration_data[1::2]
+
+    return calibration_data_channel_1, calibration_data_channel_2
 
 # Function to read chunks from WAV file
 def read_wav_chunk(wav_file, chunk_size):
@@ -153,19 +139,3 @@ def butter_lowpass_filter(data, cutoff, fs, order=1):
     filtered_data = lfilter(b, a, data)
     return filtered_data
 
-
-def dual_channel_low_pass_filter(data, cutoff, fs):
-    print(data)
-    channel1 = data[::2]
-    channel2 = data[1::2]
-
-    filtered_channel1 = butter_lowpass_filter(channel1, cutoff, fs)
-    filtered_channel2 = butter_lowpass_filter(channel2, cutoff, fs)
-
-    # Interleave filtered_channel1 and filtered_channel2, ensuring the result is of the same type as the input data (was causing issues before)
-    filtered_data = np.empty(
-        filtered_channel1.size + filtered_channel2.size, dtype=filtered_channel1.dtype
-    )
-    filtered_data[0::2] = filtered_channel1
-    filtered_data[1::2] = filtered_channel2
-    return filtered_data

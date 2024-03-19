@@ -14,7 +14,7 @@ from signal_analysis_helpers import (
     average_delay_over_period,
     read_wav_chunk,
     read_calibration_sample,
-    dual_channel_low_pass_filter,
+    butter_lowpass_filter,
 )
 
 from plotting_helpers import (
@@ -37,12 +37,12 @@ WINDOW_SECONDS = 10  # Window length in seconds
 CALIBRATION_DURATION = 10  # Calibration duration in seconds
 
 # Constants
-live = 0
+live = False
 desired_device_name = "Scarlett 2i2 USB"
 low_pass_filter_cut_off = 10
-saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+# saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
 # saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/unfiltered_signal_from_cad.wav"
-# saved_file = "/Users/ayden/Desktop/unfiltered_signal_from_cad.wav"
+saved_file = "/Users/ayden/Desktop/unfiltered_signal_2_from_cad.wav"
 # saved_file = "/Users/ayden/Desktop/rec/wav/ayden/A2_2.5COMP_3.5.wav"
 
 # Thresholds for percent difference in time delay from calibration calibration. These represent percent differnces between A2 and A1, ie. the difference in cross sectional area of the pipe
@@ -54,7 +54,7 @@ params = get_init_values(
     default_refresh_period=REFRESH_PERIOD,
     default_window_seconds=WINDOW_SECONDS,
     default_calibration_duration=CALIBRATION_DURATION,
-    default_live=False,
+    default_live=live,
     default_saved_file=saved_file,
 )
 
@@ -88,17 +88,45 @@ if DISTANCE is not None:
 
     source = stream if live else wav_file
 
-    ######## Calibration ########
-    calibration_data = read_calibration_sample(source, RATE, CALIBRATION_DURATION, live)
+    # def write_stereo_wav(filename, calibration_data_channel_1, calibration_data_channel_2, rate):
+    #     # Make sure both channels have the same length
+    #     assert len(calibration_data_channel_1) == len(calibration_data_channel_2), "Channels must have the same length"
+        
+    #     # Interleave the two channels
+    #     stereo_data = np.empty((calibration_data_channel_1.size + calibration_data_channel_2.size,), dtype=np.int16)
+    #     stereo_data[0::2] = calibration_data_channel_1
+    #     stereo_data[1::2] = calibration_data_channel_2
 
-    calibration_data = dual_channel_low_pass_filter(
-        calibration_data, low_pass_filter_cut_off, RATE
+    #     # Open a new WAV file for writing
+    #     with wave.open(filename, 'w') as wavfile:
+    #         # Set the parameters needed for the WAV file
+    #         wavfile.setnchannels(2)  # Number of channels
+    #         wavfile.setsampwidth(2)  # Sample width in bytes
+    #         wavfile.setframerate(rate)  # Frame rate
+
+    #         # Write the data to the WAV file
+    #         wavfile.writeframes(stereo_data.tobytes())
+
+    ######## Calibration ########
+    
+    # Get chunk of calibration samples (not the issue)
+    calibration_data_channel_1, calibration_data_channel_2 = read_calibration_sample(source, RATE, CALIBRATION_DURATION, live)
+
+    # Apply low pass filter to calibration data (not the issue)
+    calibration_data_channel_1 = butter_lowpass_filter(
+        calibration_data_channel_1, low_pass_filter_cut_off, RATE
+    )
+    calibration_data_channel_2 = butter_lowpass_filter(
+        calibration_data_channel_2, low_pass_filter_cut_off, RATE
     )
 
-    max_amp_channel_1, max_amp_channel_2 = max_amp_over_period(calibration_data)
+    # Get max amp for each channel from calibration data
+    max_amp_channel_1 = max_amp_over_period(calibration_data_channel_1)
+    max_amp_channel_2 = max_amp_over_period(calibration_data_channel_2)
 
+    # Get average peak and trough delays during calibration for percent difference
     calibration_peak_delay, calibration_trough_delay = average_delay_over_period(
-        calibration_data, RATE
+        calibration_data_channel_1, calibration_data_channel_2, RATE
     )
     #############################
 
@@ -146,7 +174,6 @@ if DISTANCE is not None:
             if live:
                 new_data = stream.read(CHUNK, exception_on_overflow=False)
                 new_data = np.frombuffer(new_data, dtype=np.int16)
-                print(new_data)
             else:
                 new_data = read_wav_chunk(wav_file, CHUNK)
                 if new_data is None:  # End of WAV file

@@ -6,14 +6,11 @@ import numpy as np
 from scipy.signal import butter, lfilter
 
 from signal_analysis_helpers import (
-    butter_lowpass,
     butter_lowpass_filter,
     normalize,
     max_amp_over_period,
     apply_selective_gain,
 )
-
-# from stream_recorder import perform_signal_analysis_from_wav
 
 
 def find_audio_device(p, desired_device_name):
@@ -220,7 +217,9 @@ def perform_signal_analysis(
     channel2 = butter_lowpass_filter(channel2, cutoff=lpf_cut_off, fs=RATE)
 
     ### Normalize
+    print('channel 1 max data: ')
     channel1 = normalize(channel1, max_amp_channel_1)
+    print('channel 2 max data: ')
     channel2 = normalize(channel2, max_amp_channel_2)
 
     # channel1 = apply_selective_gain(channel1, max_amp_channel_1*0.6, 0.3)
