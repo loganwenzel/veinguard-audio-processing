@@ -217,9 +217,7 @@ def perform_signal_analysis(
     channel2 = butter_lowpass_filter(channel2, cutoff=lpf_cut_off, fs=RATE)
 
     ### Normalize
-    print('channel 1 max data: ')
     channel1 = normalize(channel1, max_amp_channel_1)
-    print('channel 2 max data: ')
     channel2 = normalize(channel2, max_amp_channel_2)
 
     # channel1 = apply_selective_gain(channel1, max_amp_channel_1*0.6, 0.3)
@@ -276,7 +274,7 @@ def calculate_delays(
 
     # Calculate peak delays
     for i in range(min(len(peaks_channel1), len(peaks_channel2))):
-        delay = (peaks_channel2[i] - peaks_channel1[i]) / sample_rate
+        delay = abs(peaks_channel2[i] - peaks_channel1[i]) / sample_rate
         peak_delays.append(delay)
 
     # Calculate trough delays

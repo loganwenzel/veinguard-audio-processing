@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.signal import butter, lfilter, find_peaks
 
+
 # Normalize and amplify signal
 def normalize(data, max_amp):
-    print(max(data))
     normalized_data = data / max_amp
     return normalized_data
 
@@ -37,22 +37,10 @@ def apply_selective_gain(signal, threshold, gain):
 def max_amp_over_period(calibration_data):
     print("Starting Amplitude Calibration...")
 
-    # Find the 50 largest absolute values in the calibration data
-    # Use np.partition for efficiency
-    kth_largest = -50  # Negative indices start from the end, so -50 gets the 50 largest values
-    largest_values = np.partition(np.abs(calibration_data), kth_largest)[kth_largest:]
-    # Sort the found values for better readability
-    largest_values_sorted = np.sort(largest_values)
-
-    print("50 largest values in the calibration data:")
-    print(largest_values_sorted)
-
     # Update the maximum amplitude for each channel
     max_amplitude = np.max(np.abs(calibration_data))
 
-    print(
-        f"Calibration complete. Max amplitude: {max_amplitude}"
-    )
+    print(f"Calibration complete. Max amplitude: {max_amplitude}")
     return max_amplitude
 
 
@@ -75,6 +63,7 @@ def average_delay_over_period(data_ch1, data_ch2, rate):
     peak_delays = []
     for peak1 in peaks_ch1:
         closest_peak2 = min(peaks_ch2, key=lambda peak2: abs(peak2 - peak1))
+        # Absolute value peak delays (in weird cases. Janky fix)
         peak_delays.append((closest_peak2 - peak1) / rate)
 
     # Calculate trough delays
@@ -84,10 +73,8 @@ def average_delay_over_period(data_ch1, data_ch2, rate):
         trough_delays.append((closest_trough2 - trough1) / rate)
 
     # Calculate average delays in milliseconds
-    avg_peak_delay_ms = round(np.mean(peak_delays) * 1000, 2) if peak_delays else 0
-    avg_trough_delay_ms = (
-        round(np.mean(trough_delays) * 1000, 2) if trough_delays else 0
-    )
+    avg_peak_delay_ms = abs(round(np.mean(peak_delays) * 1000, 2)) if peak_delays else 0
+    avg_trough_delay_ms = abs(round(np.mean(trough_delays) * 1000, 2)) if trough_delays else 0
 
     print(
         f"Calibration complete. Average peak delay: {avg_peak_delay_ms} ms, Average trough delay: {avg_trough_delay_ms} ms\n"
@@ -124,6 +111,7 @@ def read_calibration_sample(source, rate, duration, is_live):
 
     return calibration_data_channel_1, calibration_data_channel_2
 
+
 # Function to read chunks from WAV file
 def read_wav_chunk(wav_file, chunk_size):
     raw_data = wav_file.readframes(chunk_size)
@@ -138,4 +126,3 @@ def butter_lowpass_filter(data, cutoff, fs, order=1):
     b, a = butter(order, normal_cutoff, btype="low", analog=False)
     filtered_data = lfilter(b, a, data)
     return filtered_data
-

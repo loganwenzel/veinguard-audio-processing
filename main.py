@@ -41,8 +41,8 @@ live = False
 desired_device_name = "Scarlett 2i2 USB"
 low_pass_filter_cut_off = 10
 # saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
-# saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/unfiltered_signal_from_cad.wav"
-saved_file = "/Users/ayden/Desktop/unfiltered_signal_2_from_cad.wav"
+saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/unfiltered_signal_from_cad.wav"
+# saved_file = "/Users/ayden/Desktop/unfiltered_signal_2_from_cad.wav"
 # saved_file = "/Users/ayden/Desktop/rec/wav/ayden/A2_2.5COMP_3.5.wav"
 
 # Thresholds for percent difference in time delay from calibration calibration. These represent percent differnces between A2 and A1, ie. the difference in cross sectional area of the pipe
@@ -88,29 +88,13 @@ if DISTANCE is not None:
 
     source = stream if live else wav_file
 
-    # def write_stereo_wav(filename, calibration_data_channel_1, calibration_data_channel_2, rate):
-    #     # Make sure both channels have the same length
-    #     assert len(calibration_data_channel_1) == len(calibration_data_channel_2), "Channels must have the same length"
-        
-    #     # Interleave the two channels
-    #     stereo_data = np.empty((calibration_data_channel_1.size + calibration_data_channel_2.size,), dtype=np.int16)
-    #     stereo_data[0::2] = calibration_data_channel_1
-    #     stereo_data[1::2] = calibration_data_channel_2
-
-    #     # Open a new WAV file for writing
-    #     with wave.open(filename, 'w') as wavfile:
-    #         # Set the parameters needed for the WAV file
-    #         wavfile.setnchannels(2)  # Number of channels
-    #         wavfile.setsampwidth(2)  # Sample width in bytes
-    #         wavfile.setframerate(rate)  # Frame rate
-
-    #         # Write the data to the WAV file
-    #         wavfile.writeframes(stereo_data.tobytes())
 
     ######## Calibration ########
-    
+
     # Get chunk of calibration samples (not the issue)
-    calibration_data_channel_1, calibration_data_channel_2 = read_calibration_sample(source, RATE, CALIBRATION_DURATION, live)
+    calibration_data_channel_1, calibration_data_channel_2 = read_calibration_sample(
+        source, RATE, CALIBRATION_DURATION, live
+    )
 
     # Apply low pass filter to calibration data (not the issue)
     calibration_data_channel_1 = butter_lowpass_filter(
