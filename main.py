@@ -37,13 +37,12 @@ CHUNK = int(RATE * (REFRESH_PERIOD / 1000))  # chunk size for processing
 WINDOW_SECONDS = 10  # Window length in seconds
 CALIBRATION_DURATION = 10  # Calibration duration in seconds
 live = False  # Set to True for live data, False for saved data
-# desired_device_name = "Scarlett 2i2 USB"
-desired_device_name = "Microphone (Scarlett 2i2 USB)"
+desired_device_name = "Scarlett 2i2 USB"
+# desired_device_name = "Microphone (Scarlett 2i2 USB)"
 low_pass_filter_cut_off = 10
 stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
-saved_file = "/Users/ayden/Desktop/unfiltered_signal_2_from_cad.wav"
+saved_file = "/Users/ayden/Desktop/temp_4.wav"
 # saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
-saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/unfiltered_march_20.wav"
 # saved_file = "/Users/ayden/Desktop/unfiltered_signal_2_from_cad.wav"
 # saved_file = "/Users/ayden/Desktop/rec/wav/ayden/A2_2.5COMP_3.5.wav"
 #############################
@@ -58,7 +57,7 @@ params = get_init_values(
     default_saved_file=saved_file,
 )
 
-DISTANCE = params["distance"] / 4
+DISTANCE = params["distance"]
 REFRESH_PERIOD = params["refresh_period"]
 WINDOW_SECONDS = params["window_seconds"]
 CALIBRATION_DURATION = params["calibration_duration"]
@@ -206,12 +205,12 @@ if DISTANCE is not None:
             # Find peaks
             peaks_c1, _ = find_peaks(
                 global_data_buffer_1,
-                height=0.5,
+                height=np.max(global_data_buffer_1) / 4,
                 distance=RATE / 2,
             )
             peaks_c2, _ = find_peaks(
                 global_data_buffer_2,
-                height=0.5,
+                height=np.max(global_data_buffer_1) / 4,
                 distance=RATE / 2,
             )
 
@@ -294,12 +293,12 @@ if DISTANCE is not None:
 
             # Calculate averages with filtered delays
             average_peak_delay_ms = (
-                round(np.mean(filtered_peak_delays) * 1000, 2)
+                round(np.mean(filtered_peak_delays) * 100000, 2)
                 if filtered_peak_delays
                 else 0
             )
             average_trough_delay_ms = (
-                round(np.mean(filtered_trough_delays) * 1000, 2)
+                round(np.mean(filtered_trough_delays) * 100000, 2)
                 if filtered_trough_delays
                 else 0
             )
