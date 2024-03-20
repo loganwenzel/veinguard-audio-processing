@@ -72,9 +72,27 @@ def average_delay_over_period(data_ch1, data_ch2, rate):
         closest_trough2 = min(troughs_ch2, key=lambda trough2: abs(trough2 - trough1))
         trough_delays.append((closest_trough2 - trough1) / rate)
 
+    # Remove values outside the standard deviation
+    peak_delays_no_std = [
+        delay
+        for delay in peak_delays
+        if abs(delay - np.mean(peak_delays)) <= np.std(peak_delays)
+    ]
+    trough_delays_no_std = [
+        delay
+        for delay in trough_delays
+        if abs(delay - np.mean(trough_delays)) <= np.std(trough_delays)
+    ]
+
     # Calculate average delays in milliseconds
-    avg_peak_delay_ms = abs(round(np.mean(peak_delays) * 1000, 2)) if peak_delays else 0
-    avg_trough_delay_ms = abs(round(np.mean(trough_delays) * 1000, 2)) if trough_delays else 0
+    avg_peak_delay_ms = (
+        abs(round(np.mean(peak_delays_no_std) * 1000, 2)) if peak_delays_no_std else 0
+    )
+    avg_trough_delay_ms = (
+        abs(round(np.mean(trough_delays_no_std) * 1000, 2))
+        if trough_delays_no_std
+        else 0
+    )
 
     print(
         f"Calibration complete. Average peak delay: {avg_peak_delay_ms} ms, Average trough delay: {avg_trough_delay_ms} ms\n"

@@ -129,27 +129,39 @@ def create_plots(window_seconds, rate):
     blood_velocity_label.setAlignment(QtCore.Qt.AlignCenter)
     heart_rate_label, heart_rate_proxy = create_styled_label("Calibrating")
     heart_rate_label.setAlignment(QtCore.Qt.AlignCenter)
-    layout.addItem(blood_velocity_proxy, row=0, col=0)
-    layout.addItem(heart_rate_proxy, row=1, col=0)
+    layout.addItem(blood_velocity_proxy, row=1, col=0)
+    layout.addItem(heart_rate_proxy, row=2, col=0)
 
     # Column 2
     avg_peak_delay_label, avg_peak_delay_proxy = create_styled_label("Calibrating")
     avg_peak_delay_label.setAlignment(QtCore.Qt.AlignCenter)
     avg_trough_delay_label, avg_trough_delay_proxy = create_styled_label("Calibrating")
     avg_trough_delay_label.setAlignment(QtCore.Qt.AlignCenter)
-    layout.addItem(avg_peak_delay_proxy, row=0, col=1)
-    layout.addItem(avg_trough_delay_proxy, row=1, col=1)
+    layout.addItem(avg_peak_delay_proxy, row=1, col=1)
+    layout.addItem(avg_trough_delay_proxy, row=2, col=1)
 
     # Column 3
     percent_difference_from_calibration_label, percent_difference_proxy = (
         create_styled_label("Calibrating")
     )
     percent_difference_from_calibration_label.setAlignment(QtCore.Qt.AlignCenter)
-    layout.addItem(percent_difference_proxy, row=0, col=2)
+    layout.addItem(percent_difference_proxy, row=1, col=2)
 
     stenosis_risk_label, stenosis_risk_proxy = create_styled_label("Calibrating")
     stenosis_risk_label.setAlignment(QtCore.Qt.AlignCenter)
-    layout.addItem(stenosis_risk_proxy, row=1, col=2)
+    layout.addItem(stenosis_risk_proxy, row=2, col=2)
+
+    # Add a recalibrate button to the layout
+    # Add a recalibrate button to the layout
+    recalibrate_button = QtWidgets.QPushButton("Re-calibrate")
+    recalibrate_button.setStyleSheet("font-size: 16px; height: 40px;")
+
+    # Create a proxy widget for the button
+    recalibrate_button_proxy = pg.QtWidgets.QGraphicsProxyWidget()
+    recalibrate_button_proxy.setWidget(recalibrate_button)
+
+    # Add the proxy widget to the layout
+    layout.addItem(recalibrate_button_proxy, row=0, col=0, colspan=3)
 
     # positions = [0, 44100, 88200, 132300, 176400, 220500, 264600, 308700, 352800, 396900, 441000]
 
@@ -187,6 +199,7 @@ def create_plots(window_seconds, rate):
         percent_difference_from_calibration_label,
         stenosis_risk_label,
         update_x_axis,
+        recalibrate_button,
     )
 
 
@@ -279,7 +292,7 @@ def calculate_delays(
 
     # Calculate trough delays
     for i in range(min(len(troughs_channel1), len(troughs_channel2))):
-        delay = (troughs_channel2[i] - troughs_channel1[i]) / sample_rate
+        delay = abs(troughs_channel2[i] - troughs_channel1[i]) / sample_rate
         trough_delays.append(delay)
 
     return {"peak_delays": peak_delays, "trough_delays": trough_delays}
