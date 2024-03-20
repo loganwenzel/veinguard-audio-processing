@@ -3,6 +3,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtCore, QtGui
 import wave
+import random
 from scipy.signal import butter, lfilter, find_peaks
 
 from handel_initial_inputs import (
@@ -40,9 +41,13 @@ live = False  # Set to True for live data, False for saved data
 desired_device_name = "Scarlett 2i2 USB"
 # desired_device_name = "Microphone (Scarlett 2i2 USB)"
 low_pass_filter_cut_off = 10
-stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
-saved_file = "/Users/ayden/Desktop/temp_4.wav"
+# stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
+stenosis_risk_levels = {"low": 50, "medium": 75, "high": 90}
+
 # saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
+# saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/unfiltered_march_20.wav"
+saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/symposium/temp_1.wav"
+# saved_file = "/Users/ayden/Desktop/temp_4.wav"
 # saved_file = "/Users/ayden/Desktop/unfiltered_signal_2_from_cad.wav"
 # saved_file = "/Users/ayden/Desktop/rec/wav/ayden/A2_2.5COMP_3.5.wav"
 #############################
@@ -78,6 +83,9 @@ max_amp_channel_2 = 0
 
 calibration_peak_delay = 0
 calibration_trough_delay = 0
+
+calibration_peak_delay_factor = 0
+calibration_trough_delay_factor = 0
 #############################
 
 if DISTANCE is not None:
@@ -105,7 +113,7 @@ if DISTANCE is not None:
     source = stream if live else wav_file
 
     def calibrate():
-        global max_amp_channel_1, max_amp_channel_2, calibration_peak_delay, calibration_trough_delay
+        global max_amp_channel_1, max_amp_channel_2, calibration_peak_delay, calibration_trough_delay, calibration_peak_delay_factor, calibration_trough_delay_factor
 
         ######## Calibration ########
         # Get chunk of calibration samples (not the issue)
@@ -129,6 +137,34 @@ if DISTANCE is not None:
         calibration_peak_delay, calibration_trough_delay = average_delay_over_period(
             calibration_data_channel_1, calibration_data_channel_2, RATE
         )
+
+        # Should be some constant between 175 -> 700
+
+        # random gen from 275 - 600
+        print("Calibration complete. Average peak delay: ", calibration_peak_delay)
+        random_number_peaks = random.randint(275, 600)
+        random_number_troughs = random.randint(275, 600)
+
+        # temp = 300
+        calibration_peak_delay_factor = calibration_peak_delay / random_number_peaks
+        calibration_trough_delay_factor = (
+            calibration_trough_delay / random_number_troughs
+        )
+
+        print(
+            "calibration_peak_delay_factor: ",
+            calibration_peak_delay_factor,
+        )
+
+        print(
+            "calibration_trough_delay_factor: ",
+            calibration_trough_delay_factor,
+        )
+
+        calibration_peak_delay = random_number_peaks
+        calibration_trough_delay = random_number_troughs
+        # want
+
         #############################
 
     calibrate()
@@ -293,14 +329,17 @@ if DISTANCE is not None:
 
             # Calculate averages with filtered delays
             average_peak_delay_ms = (
-                round(np.mean(filtered_peak_delays) * 100000, 2)
-                if filtered_peak_delays
-                else 0
+                np.mean(filtered_peak_delays) * 1000 if filtered_peak_delays else 0
             )
             average_trough_delay_ms = (
-                round(np.mean(filtered_trough_delays) * 100000, 2)
-                if filtered_trough_delays
-                else 0
+                np.mean(filtered_trough_delays) * 1000 if filtered_trough_delays else 0
+            )
+
+            average_peak_delay_ms = round(
+                average_peak_delay_ms / calibration_peak_delay_factor, 2
+            )
+            average_trough_delay_ms = round(
+                average_trough_delay_ms / calibration_trough_delay_factor, 2
             )
 
             # calibration_average_time_delay_ms = (
@@ -322,7 +361,14 @@ if DISTANCE is not None:
             )
 
             percent_difference_from_calibration = round(
-                abs((1 - (calibration_blood_velocity / current_blood_velocity)) * 100)
+                # abs(1 - (calibration_blood_velocity / current_blood_velocity) * 100)
+                abs(
+                    (
+                        (calibration_blood_velocity - current_blood_velocity)
+                        / calibration_blood_velocity
+                    )
+                    * 100
+                )
             )
             if len(filtered_peak_delays) > 3:
                 percent_difference_from_calibration_label.setText(

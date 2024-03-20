@@ -86,10 +86,10 @@ def average_delay_over_period(data_ch1, data_ch2, rate):
 
     # Calculate average delays in milliseconds
     avg_peak_delay_ms = (
-        abs(round(np.mean(peak_delays_no_std) * 100000, 2)) if peak_delays_no_std else 0
+        abs(round(np.mean(peak_delays_no_std) * 1000, 2)) if peak_delays_no_std else 0
     )
     avg_trough_delay_ms = (
-        abs(round(np.mean(trough_delays_no_std) * 100000, 2))
+        abs(round(np.mean(trough_delays_no_std) * 1000, 2))
         if trough_delays_no_std
         else 0
     )
