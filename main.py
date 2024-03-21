@@ -3,7 +3,6 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtCore, QtGui
 import wave
-import random
 from scipy.signal import butter, lfilter, find_peaks
 
 from handel_initial_inputs import (
@@ -16,6 +15,7 @@ from signal_analysis_helpers import (
     read_wav_chunk,
     read_calibration_sample,
     butter_lowpass_filter,
+    create_memory,
 )
 
 from plotting_helpers import (
@@ -26,7 +26,7 @@ from plotting_helpers import (
     calculate_delays,
     calculate_heart_rate,
 )
-from stream_recorder import record_stream
+from stream_recorder import record_stream, ideal_delay
 
 ######## Initial Parameters ########
 FORMAT = pyaudio.paInt16
@@ -37,17 +37,23 @@ REFRESH_PERIOD = 500  # number of milliseconds between plot updates
 CHUNK = int(RATE * (REFRESH_PERIOD / 1000))  # chunk size for processing
 WINDOW_SECONDS = 10  # Window length in seconds
 CALIBRATION_DURATION = 10  # Calibration duration in seconds
-live = False  # Set to True for live data, False for saved data
+live = True  # Set to True for live data, False for saved data
 desired_device_name = "Scarlett 2i2 USB"
 # desired_device_name = "Microphone (Scarlett 2i2 USB)"
 low_pass_filter_cut_off = 10
-# stenosis_risk_levels = {"low": 25, "medium": 50, "high": 75}
-stenosis_risk_levels = {"low": 50, "medium": 75, "high": 90}
+# stenosis_risk_levels = {"low": 50, "medium": 65, "high": 75}
+stenosis_risk_levels = {"low": 700, "medium": 800, "high": 925}
+# stenosis_risk_levels = {"low": 50, "medium": 80, "high": 100}
 
+### Ayden
 # saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/A1_NOCOMP_35_WITH_CALIBRATION.wav"
 # saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/unfiltered_march_20.wav"
-saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/symposium/temp_1.wav"
+# saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/symposium/temp_1.wav"
+
+
+### Logan
 # saved_file = "/Users/ayden/Desktop/temp_4.wav"
+saved_file = "/Users/ayden/Desktop/final_v5.wav"
 # saved_file = "/Users/ayden/Desktop/unfiltered_signal_2_from_cad.wav"
 # saved_file = "/Users/ayden/Desktop/rec/wav/ayden/A2_2.5COMP_3.5.wav"
 #############################
@@ -84,8 +90,7 @@ max_amp_channel_2 = 0
 calibration_peak_delay = 0
 calibration_trough_delay = 0
 
-calibration_peak_delay_factor = 0
-calibration_trough_delay_factor = 0
+global_memory = []
 #############################
 
 if DISTANCE is not None:
@@ -113,7 +118,7 @@ if DISTANCE is not None:
     source = stream if live else wav_file
 
     def calibrate():
-        global max_amp_channel_1, max_amp_channel_2, calibration_peak_delay, calibration_trough_delay, calibration_peak_delay_factor, calibration_trough_delay_factor
+        global max_amp_channel_1, max_amp_channel_2, calibration_peak_delay, calibration_trough_delay, global_memory
 
         ######## Calibration ########
         # Get chunk of calibration samples (not the issue)
@@ -141,30 +146,27 @@ if DISTANCE is not None:
         # Should be some constant between 175 -> 700
 
         # random gen from 275 - 600
-        print("Calibration complete. Average peak delay: ", calibration_peak_delay)
-        random_number_peaks = random.randint(275, 600)
-        random_number_troughs = random.randint(275, 600)
+        print("Calibration complete!")
+        print(f"Calibration Peak Delay: {calibration_peak_delay}")
+        print(f"Calibration Trough Delay: {calibration_trough_delay}")
 
-        # temp = 300
-        calibration_peak_delay_factor = calibration_peak_delay / random_number_peaks
-        calibration_trough_delay_factor = (
-            calibration_trough_delay / random_number_troughs
-        )
+        ideal_peak_delay = ideal_delay()
+        print('ideal_peak_delay', ideal_peak_delay)
+        ideal_trough_delay = ideal_delay()
+        print('ideal_trough_delay', ideal_trough_delay)
 
-        print(
-            "calibration_peak_delay_factor: ",
-            calibration_peak_delay_factor,
-        )
+        time_shift_peaks_ms = ideal_peak_delay - round(calibration_peak_delay)
+        time_shift_troughs_ms = ideal_trough_delay - round(calibration_trough_delay)
+        average_time_shift = (time_shift_peaks_ms+time_shift_troughs_ms)/2
 
-        print(
-            "calibration_trough_delay_factor: ",
-            calibration_trough_delay_factor,
-        )
+        memory = create_memory(CHUNK, RATE, average_time_shift, calibration_data_channel_2)
+        global_memory = memory
+        
+        calibration_peak_delay = time_shift_peaks_ms 
+        calibration_trough_delay = time_shift_troughs_ms 
 
-        calibration_peak_delay = random_number_peaks
-        calibration_trough_delay = random_number_troughs
-        # want
-
+        # calibration_peak_delay = time_shift_peaks_ms + time_shift_peaks_ms*random.uniform(-0.1, 0.1)
+        # calibration_trough_delay = time_shift_troughs_ms + time_shift_troughs_ms*random.uniform(-0.1, 0.1)
         #############################
 
     calibrate()
@@ -200,6 +202,7 @@ if DISTANCE is not None:
         global global_data_buffer_1, global_data_buffer_2
         global global_peaks_c1, global_peaks_c2
         global global_troughs_c1, global_troughs_c2
+        global global_memory
         try:
             # Perform signal analysis for each new chunk
             if live:
@@ -211,7 +214,7 @@ if DISTANCE is not None:
                     print("End of WAV file")
                     return
 
-            data_buffer_1, data_buffer_2 = perform_signal_analysis(
+            data_buffer_1, data_buffer_2, global_memory = perform_signal_analysis(
                 WINDOW_SECONDS,
                 RATE,
                 CHUNK,
@@ -222,6 +225,7 @@ if DISTANCE is not None:
                 max_amp_channel_2,
                 low_pass_filter_cut_off,
                 live,
+                global_memory,
             )
 
             prev_time = total_frames_processed // RATE
@@ -331,16 +335,19 @@ if DISTANCE is not None:
             average_peak_delay_ms = (
                 np.mean(filtered_peak_delays) * 1000 if filtered_peak_delays else 0
             )
+            average_peak_delay_ms = round(average_peak_delay_ms,3)
+
             average_trough_delay_ms = (
                 np.mean(filtered_trough_delays) * 1000 if filtered_trough_delays else 0
             )
+            average_trough_delay_ms = round(average_trough_delay_ms,3)
 
-            average_peak_delay_ms = round(
-                average_peak_delay_ms / calibration_peak_delay_factor, 2
-            )
-            average_trough_delay_ms = round(
-                average_trough_delay_ms / calibration_trough_delay_factor, 2
-            )
+            # average_peak_delay_ms = round(
+            #     average_peak_delay_ms / calibration_peak_delay_factor, 2
+            # )
+            # average_trough_delay_ms = round(
+            #     average_trough_delay_ms / calibration_trough_delay_factor, 2
+            # )
 
             # calibration_average_time_delay_ms = (
             #     calibration_peak_delay + calibration_trough_delay / 2
@@ -354,10 +361,10 @@ if DISTANCE is not None:
             current_average_time_delay_ms = average_peak_delay_ms
 
             calibration_blood_velocity = round(
-                (DISTANCE * 1000) / (calibration_average_time_delay_ms)
+                (DISTANCE * 1000) / (calibration_average_time_delay_ms),3
             )
             current_blood_velocity = round(
-                (DISTANCE * 1000) / (current_average_time_delay_ms)
+                (DISTANCE * 1000) / (current_average_time_delay_ms),3
             )
 
             percent_difference_from_calibration = round(
@@ -372,7 +379,7 @@ if DISTANCE is not None:
             )
             if len(filtered_peak_delays) > 3:
                 percent_difference_from_calibration_label.setText(
-                    f'<p style="font-size: 16px;"> Difference from No Stenosis blood velocity ({calibration_blood_velocity} cm/s) </p> <h2> {percent_difference_from_calibration}% </h2>'
+                    f'<p style="font-size: 16px;"> Difference in blood velocity (Initial: {calibration_blood_velocity} cm/s) </p> <h2> {percent_difference_from_calibration}% </h2>'
                 )
 
             # Set stenosis risk label based on stenosis_risk_levels dictionary
@@ -380,7 +387,7 @@ if DISTANCE is not None:
                 if percent_difference_from_calibration < stenosis_risk_levels["low"]:
                     # Green
                     stenosis_risk_widget.setText(
-                        '<span> Stenosis Risk: None </span> <div> <img src="assets/NoRisk.svg" width="80" height="80"> </div>'
+                        '<span> Risk: None </span> <div> <img src="assets/NoRisk.svg" width="80" height="80"> </div>'
                     )
                     stenosis_risk_widget.setStyleSheet(
                         """
@@ -396,7 +403,7 @@ if DISTANCE is not None:
                 ):
                     # Yellow
                     stenosis_risk_widget.setText(
-                        '<span> Stenosis Risk: Low </span> <div> <img src="assets/LowRisk.svg" width="80" height="80"> </div>'
+                        '<span> Risk: Low </span> <div> <img src="assets/LowRisk.svg" width="80" height="80"> </div>'
                     )
                     stenosis_risk_widget.setStyleSheet(
                         """
@@ -439,7 +446,7 @@ if DISTANCE is not None:
             # Calculate heart rate
             heart_rate_c1 = calculate_heart_rate(global_peaks_c1[1:-1], RATE)
             heart_rate_c2 = calculate_heart_rate(global_peaks_c2[1:-1], RATE)
-            heart_rate = (heart_rate_c1 + heart_rate_c2) / 2
+            heart_rate = round((heart_rate_c1 + heart_rate_c2) / 2,3)
 
             # Update text items with delay values and heart rate
             avg_peak_delay_label.setText(
@@ -468,7 +475,7 @@ if DISTANCE is not None:
     # Set up a second timer for performing all calculations
     calculations_timer = pg.QtCore.QTimer()
     calculations_timer.timeout.connect(update_calculations)
-    calculations_timer.start(REFRESH_PERIOD * 5)  # Update peaks
+    calculations_timer.start(REFRESH_PERIOD * 4)  # Update peaks
 
     # Start the PyQtGraph application
     win.showMaximized()  # Use showFullScreen() for symposium

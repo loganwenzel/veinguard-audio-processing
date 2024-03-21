@@ -209,16 +209,22 @@ def perform_signal_analysis(
     CHUNK,
     data_buffer_1,
     data_buffer_2,
-    source,
+    new_data,
     max_amp_channel_1,
     max_amp_channel_2,
     lpf_cut_off,
     is_live,
+    global_memory
 ):
-    new_data = source
-
+    
     channel1 = new_data[::2]
     channel2 = new_data[1::2]
+
+    ##### Funky_Code #####
+    global_memory.insert(0, channel2)
+    channel2 = global_memory.pop()
+    ######################
+
 
     # Calculate alpha for the low-pass filter
     tau = 1.0 / (2 * np.pi * lpf_cut_off)
@@ -245,7 +251,7 @@ def perform_signal_analysis(
     data_buffer_1 = np.append(data_buffer_1, channel1)
     data_buffer_2 = np.append(data_buffer_2, channel2)
 
-    return data_buffer_1, data_buffer_2
+    return data_buffer_1, data_buffer_2, global_memory
 
 
 def simple_lowpass_filter(data, alpha, last_value=0):

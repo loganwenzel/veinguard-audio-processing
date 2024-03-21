@@ -1,4 +1,5 @@
 import wave
+import random
 
 def record_stream(duration, filename, channels, FORMAT, RATE, stream, CHUNK):
     frames = []
@@ -19,7 +20,9 @@ def open_wav(filename):
     wf = wave.open(filename, 'rb')
     return wf
 
-
+def ideal_delay():
+    return random.randint(275, 600)
+    
 def perform_signal_analysis_from_wav(WINDOW_SECONDS, RATE, CHANNELS, CHUNK, wf):
     # Read a new chunk of data from the WAV file
     new_data = wf.readframes(CHUNK)

@@ -144,3 +144,29 @@ def butter_lowpass_filter(data, cutoff, fs, order=1):
     b, a = butter(order, normal_cutoff, btype="low", analog=False)
     filtered_data = lfilter(b, a, data)
     return filtered_data
+
+
+def create_memory(CHUNK, RATE, time_shift_ms, calibration_data_channel_2):
+    # RATE: 44100 Frames/Second
+    # CHUNK: 22500 Frames
+    # time_shift: X seocnds
+
+    total_frames_to_shift = (time_shift_ms/1000) * RATE
+    n_chunks = total_frames_to_shift/CHUNK
+
+    rounded_chunks = round(n_chunks)
+    rounded_frames_to_shift = rounded_chunks*CHUNK
+
+    filler_data = calibration_data_channel_2[-rounded_frames_to_shift:]
+
+    memory = [filler_data[i * CHUNK:(i + 1) * CHUNK] for i in range(rounded_chunks)]
+
+    # memory = []
+    # for i in range(rounded_chunks):
+    #     mem_chunk = filler_data[:CHUNK]
+    #     filler_data = filler_data[:CHUNK]
+    #     memory.append(filler_data)
+
+    # memory = [[0] * CHUNK for _ in range(rounded_chunks)]
+
+    return memory
