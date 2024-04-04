@@ -3,6 +3,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtCore, QtGui
 import wave
+import pandas as pd
 from scipy.signal import butter, lfilter, find_peaks
 
 from handel_initial_inputs import (
@@ -37,7 +38,7 @@ REFRESH_PERIOD = 500  # number of milliseconds between plot updates
 CHUNK = int(RATE * (REFRESH_PERIOD / 1000))  # chunk size for processing
 WINDOW_SECONDS = 10  # Window length in seconds
 CALIBRATION_DURATION = 10  # Calibration duration in seconds
-live = True  # Set to True for live data, False for saved data
+live = False  # Set to True for live data, False for saved data
 desired_device_name = "Scarlett 2i2 USB"
 # desired_device_name = "Microphone (Scarlett 2i2 USB)"
 low_pass_filter_cut_off = 10
@@ -50,10 +51,9 @@ stenosis_risk_levels = {"low": 700, "medium": 800, "high": 925}
 # saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/ayden/unfiltered_march_20.wav"
 # saved_file = "C:/Users/wenze/source/repos/veinguard/veinguard-audio-processing/recordings/symposium/temp_1.wav"
 
-
 ### Logan
 # saved_file = "/Users/ayden/Desktop/temp_4.wav"
-saved_file = "/Users/ayden/Desktop/final_v5.wav"
+saved_file = "/Users/ayden/Library/Mobile Documents/com~apple~CloudDocs/School/BME 462 - Capstone/validation/compression/lo_7.5_3.wav"
 # saved_file = "/Users/ayden/Desktop/unfiltered_signal_2_from_cad.wav"
 # saved_file = "/Users/ayden/Desktop/rec/wav/ayden/A2_2.5COMP_3.5.wav"
 #############################
@@ -91,6 +91,9 @@ calibration_peak_delay = 0
 calibration_trough_delay = 0
 
 global_memory = []
+current_time = 2
+time_array = []
+blood_flow_array = []
 #############################
 
 if DISTANCE is not None:
@@ -298,6 +301,7 @@ if DISTANCE is not None:
             return
 
     def update_calculations():
+        global current_time, time_array, blood_flow_array
         try:
             if (
                 len(global_peaks_c1) < 3
@@ -366,6 +370,12 @@ if DISTANCE is not None:
             current_blood_velocity = round(
                 (DISTANCE * 1000) / (current_average_time_delay_ms),3
             )
+
+            print(f"Time: {current_time}s, Blood Velocity: {current_blood_velocity}\n")
+            time_array.append(current_time)
+            blood_flow_array.append(current_blood_velocity)
+
+            current_time = current_time + 2
 
             percent_difference_from_calibration = round(
                 # abs(1 - (calibration_blood_velocity / current_blood_velocity) * 100)
@@ -481,8 +491,14 @@ if DISTANCE is not None:
     win.showMaximized()  # Use showFullScreen() for symposium
     QtWidgets.QApplication.instance().exec_()
 
+    df = pd.DataFrame({'time': time_array, 'blood flow': blood_flow_array})
+    # Write the DataFrame to an Excel file
+    df.to_excel('/Users/ayden/Desktop/output.xlsx', index=False)
+
     # Close the stream and PyAudio
     if live:
+
+
         stream.stop_stream()
         stream.close()
     p.terminate()
